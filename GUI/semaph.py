@@ -18,6 +18,8 @@ ser = 0
 ErrorDesc = "GenericError"
 T = 0
 
+STo = 0
+
 Nome_Macchina_1 = "Macchina_1"
 Nome_Macchina_2 = "Macchina_2"
 Nome_Macchina_3 = "Macchina_3"
@@ -38,32 +40,6 @@ class Welcome(Screen):
             self.parent.new_Error_screen()
         else:
             self.parent.current = "Impostazioni"
-#        global ErrorDesc
-#        global ser
-#        try:
-#            ser = serial.Serial('/dev/ttyACM0', 115200, timeout= 0.1)
-#            print("Seriale aperta correttamente")
-#            sleep(.5)
-#            ser.write("P\n".encode())
-#            sleep(.5)
-#            ser.write("P\n".encode())
-#            sleep(.1)
-#            if ser.read() == b'A' :
-#                print("Seriale aperta correttamente")
-#            else:
-#                print("Probabile errore durante l'apertura della seriale...")
-#                ##Faccio qualcosa di stupido per far salire un'eccezione
-#                ser.close()
-#                ser = 0
-#                ser.write("ciao") #cosa stupida
-#            while ser.in_waiting:
-#                ser.read()
-#            self.parent.current = "Impostazioni"
-#        except:
-#            print(self)
-#            print("Non riesco ad aprire la seriale")
-#            ErrorDesc="Non riesco a aprire la seriale"
-#            self.parent.new_Error_screen()
 
 class Error(Screen):
     def ErrCode(self, *args):
@@ -83,7 +59,7 @@ class Race(Screen):
         global Nome_Macchina_3
         global Nome_Corsa
 
-        if (self.SerAv()==0):
+        if (CheckSer()==0):
             self.ids.start_button.color = (1, 0, .1, 1)
         self.ids.TitoloCorsa.text = Nome_Corsa
         self.ids.macchina_1.text= Nome_Macchina_1
@@ -112,8 +88,24 @@ class Race(Screen):
     def Counter(self, *args):
         global T
         global ErrorDesc
-        c = 0
-        if (ser.in_waiting>0):
+        global ser
+        global STo
+        try:
+            pippo = ser.in_waiting
+        except:
+            print("Errore nella comunicazione con la Seriale")
+            ErrorDesc = "Non riesco a connettermi con Arduino"
+            ser = 0
+            Clock.unschedule(self.Counter)
+            self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.stop_button.color = (1, 0, 0, 1)
+            self.ids.settings_button.color= (0, 1, 0, 1)
+            self.ids.start_button.color = (0, 1, 0, 1)
+            self.parent.new_Error_screen()
+            return
+        if (pippo>0):
             c = ser.read()
             if(c==b'R'):
                 T = -200
@@ -151,17 +143,22 @@ class Race(Screen):
         if(T<=0):
             if ((T==0)and(not(self.ids.Green_Light.bgcolor[1]==1 ))):
                 T = -50
-                c = c+1
-                if (c >= 20):
+                STo = STo+1
+                if (STo >= 20):
                     print("No answer during Semaph")
                     ErrorDesc = "Errore sulla seriale: non ricevo risposta sul semaforo"
+                    self.ids.stop_button.color = (1, 0, 0, 1)
+                    self.ids.settings_button.color= (0, 1, 0, 1)
+                    self.ids.start_button.color = (1, 0, 0, 1)
                     self.parent.new_Error_screen()
+
             self.ids.timer.text = '-' + self.ids.timer.text
 
     def Start(self, *args):
         global ser
         global T
         global ErrorDesc
+        global STo
         if CheckSer() == 0:
             print("Errore nell'apertura della seriale con lo start")
             ErrorDesc = "Non riesco ad aprire la seriale con lo start"
@@ -184,6 +181,7 @@ class Race(Screen):
             self.ids.start_button.color = (0, 1, 0, 1)
         else:
             Clock.schedule_interval(self.Counter, 0.05)
+            STo = 0
 
 
 
@@ -289,9 +287,9 @@ def OpenSer():
     try:
         ser = serial.Serial('/dev/ttyACM0', 115200, timeout= 0.1)
         print("Seriale aperta correttamente")
-        sleep(.5)
+        sleep(.2)
         ser.write("P\n".encode())
-        sleep(.5)
+        sleep(.8)
         while ser.in_waiting:
             ser.read()
         ser.write("P\n".encode())

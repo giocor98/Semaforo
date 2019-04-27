@@ -3,19 +3,45 @@
 #define RED 4
 #define MAX_MSGLEN 25
 
+#define LED_P_0 8
+#define LED_P_1 9
+#define LED_P_2 10
+
+#define SENS_P_0 A1
+#define SENS_P_1 A2
+#define SENS_P_2 A3
+
 //Funzine che legge la seriale per i comandi e li esegue.
 void HandleMessage();
 
 //Funzione che regola il funzionamento del Semaforo.
 void Semaforo();
 
+//Variabili per la gestione dei sensori
+int PinLedPista[3];
+int PinSensPista[3];
+bool PistaSel[3];
 
 void setup() {
 
+  //Inizializzazione delle variabili dei pin
+  PinLedPista[0] = LED_P_0;
+  PinSensPista[0] = SENS_P_0;
+  PinLedPista[1] = LED_P_1;
+  PinSensPista[1] = SENS_P_1;
+  PinLedPista[2] = LED_P_2;
+  PinSensPista[2] = SENS_P_2;
+  PistaSel[0] = false;
+  PistaSel[1] = false;
+  PistaSel[2] = false;
+  
   //Inizializzo i pin del semaforo
   pinMode(GREEN, OUTPUT);
   pinMode(YELLOW, OUTPUT);
   pinMode(RED, OUTPUT);
+  pinMode(LED_P_0, OUTPUT);
+  pinMode(LED_P_1, OUTPUT);
+  pinMode(LED_P_2, OUTPUT);
 
   pinMode(13, OUTPUT);
   digitalWrite(13, LOW);
@@ -23,6 +49,9 @@ void setup() {
   digitalWrite(GREEN, LOW);
   digitalWrite(YELLOW, LOW);
   digitalWrite(RED, LOW);
+  digitalWrite(LED_P_0, LOW);
+  digitalWrite(LED_P_1, LOW);
+  digitalWrite(LED_P_2, LOW);
   //Inizializzo la seriale a 115200
   Serial.begin(115200);
 
@@ -70,6 +99,28 @@ void HandleMessage(){
     //Se è S il messaggio, allora avvio la sequenza del semaforo
     if(msg[n] == 'S'){
       Semaforo();
+    }
+  }else{
+    //Se il Messaggio è di lunghezza maggiore di 1
+    n = MAX_MSGLEN-1;
+    if(msg[n] == 's'){
+      //Se il messaggio ha il primo carattere 's'
+
+      //Imposto tutte le PistaSel a false 
+      for (int i=0; i<3; i++){
+        PistaSel[i] = false;
+      }
+      while(msg[n] != 0){
+        //Setto a true i soli PistaSel impostati
+        if (msg[n] == '0'){
+          PistaSel[0] = true;
+        }else if (msg[n] == '1'){
+          PistaSel[1] = true;
+        }else if (msg[n] == '2'){
+          PistaSel[2] = true;
+        }
+        n--;
+      }
     }
   }
 }
