@@ -11,6 +11,8 @@
 #define SENS_P_1 A2
 #define SENS_P_2 A3
 
+#define soglia 7
+
 //Funzine che legge la seriale per i comandi e li esegue.
 void HandleMessage();
 
@@ -21,6 +23,9 @@ void Semaforo();
 int PinLedPista[3];
 int PinSensPista[3];
 bool PistaSel[3];
+int Av_Pista[3];
+int Max_Pista[3];
+int Min_Pista[3];
 
 void setup() {
 
@@ -138,6 +143,7 @@ void Semaforo(){
 
   //Aspetta 1 secondo
   //TODO: Effettuare i controlli inquesto secondo sui sensori
+  PreparaSensori();
   delay(1000);
 
   // Accende il Rosso
@@ -149,7 +155,7 @@ void Semaforo(){
 
   //Aspetta 1 secondo
   //TODO: Effettuare i controlli inquesto secondo sui sensori
-  delay(1000);
+  PreCheck(1000, 0);
 
   // Accende il giallo
   digitalWrite(GREEN, LOW);
@@ -160,7 +166,7 @@ void Semaforo(){
 
   //Aspetta 1 secondo
   //TODO: Effettuare i controlli inquesto secondo sui sensori
-  delay(1000);
+  PreCheck(1000, 1);
 
   // Accende il Verde
   digitalWrite(GREEN, HIGH);
@@ -169,6 +175,98 @@ void Semaforo(){
   //Invia il messaggio di "Green"
   Serial.println("G");
 
+
+  PreCheck(10000, 1);
+  RilasciaSensori();
   // Inizia la rilevazione dei sensori per detectare il passaggio delle macchinine.
   
+}
+
+//Funzione che prepara i sensori (accende i led)
+//In : null
+//Out: null
+void PreparaSensori(){
+  for (int i=0; i<3; i++){
+    if (PistaSel[i]){
+      digitalWrite(PinLedPista[i], HIGH);
+    }
+  }
+}
+
+//Funzione che prepara i sensori per essere controllati
+//In: t int numero di millisecondi che deve durare il controllo
+//    mode 0 se deve aggiornare gli stati iniziali, 1 se deve controllare se i valori rimangono nei valori fissati precedentemente
+//Out: 0 se tutto ok, altro altrimenti
+char PreCheck(int t, int mode){
+  int n_cicli;
+  unsigned long int t_fin = millis() + t;
+  int j, i, tmp;
+  unsigned long int sum[3];
+
+  sum[0] = 0;
+  sum[1]= 0;
+  sum[2] = 0;
+
+  if (mode == 0){
+    n_cicli = 0;
+  }else{
+    n_cicli = 1;
+  }
+  //Accende i led, se non sono ancora accesi
+  PreparaSensori();
+  //inizio il controllo
+  while (millis() < t_fin){
+    for (j = 0; j<4; j++){
+      for (i=0; i<3; i++){
+        if (PistaSel[i]){
+          tmp = analogRead(PinSensPista[i]);
+          if(n_cicli == 0){
+            Av_Pista[i] = tmp;
+            Max_Pista[i]=tmp;
+            Min_Pista[i] = tmp;
+          }else{
+            if ((tmp > Av_Pista[i]+soglia)||(tmp<Av_Pista[i]-soglia)){
+              Serial.println("Errore");
+              Serial.println(n_cicli);
+              Serial.print(Av_Pista[i]);
+              Serial.print(" - ");
+              Serial.println(tmp);
+              return 1;
+            }else{
+              sum[i] += tmp;
+              Av_Pista[i] = sum[i]/n_cicli;
+              if(tmp>Max_Pista[i]){
+                Max_Pista[i]= tmp;
+              }else if(tmp<Min_Pista[i]){
+                Min_Pista[i] = tmp;
+              }
+            }
+          }
+        }
+      }
+      n_cicli++;
+    }
+  }
+  Serial.println("Fine_Check");
+  for(i = 0; i<3; i++){
+    Av_Pista[i] = sum[i]/n_cicli;
+    Serial.print("m:");
+    Serial.print(Min_Pista[i]);
+    Serial.print("e:");
+    Serial.print(Av_Pista[i]);
+    Serial.print("M:");
+    Serial.println(Max_Pista[i]);
+  }
+  Serial.println(n_cicli);
+  return 0;
+}
+
+//Funzione che Resetta i Sensori
+//In : null
+//Out: null
+void RilasciaSensori(){
+  for (int i=0; i<3; i++){
+    PistaSel[i] = false;
+    digitalWrite(PinLedPista[i], LOW);
+  }
 }
