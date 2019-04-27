@@ -1,0 +1,519 @@
+#:kivy 1.0.9
+#:import FadeTransition kivy.uix.screenmanager.FadeTransition
+
+MyScreenManager:
+    transition: FadeTransition()
+    Welcome:
+    SecondScreen:
+    Race:
+    Impostazioni:
+    WIP:
+
+<Welcome>:
+    name: 'Welcome'
+    on_pre_enter: root.inFunz=0
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/Welcome.jpg'
+        Label:
+            text: 'Mini 4WD'
+            color: 1, 0, 0, 1
+            markup: True
+            font_size: 70
+            size_hint_y: None
+            height: root.height*3/4
+        BoxLayout:
+            Button:
+                text: 'Gara!'
+                font_size: 40
+                on_release: root.PreRace()
+            Button:
+                text: 'Impostazioni'
+                font_size: 40
+                on_release: app.root.current = 'WIP'
+
+<Error>:
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/Error.jpg'
+        Label:
+            id: title
+            text: 'Errore'
+            color: 1, 0, 0, 1
+            markup: True
+            font_size: 70
+            size_hint_y: None
+            height: root.height/4
+        Label:
+            text: root.ErrCode()
+            color: .7, .5, .3, 1
+            markup: True
+            font_size: 30
+            size_hint_y: None
+            height: root.height/2
+        BoxLayout:
+            Button:
+                text: 'Home'
+                font_size: 40
+                on_release: app.root.current = 'Welcome'
+            Button:
+                text: 'Esci'
+                font_size: 40
+                on_release: quit()
+        BoxLayout:
+            Button:
+                text: 'Go To Race Anyway'
+                font_size: 40
+                on_release: app.root.current = 'Impostazioni'
+
+
+<Race>:
+    name: 'Race'
+    fullscreen: True
+    on_pre_enter: root.Aggiorna()
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/Race.jpg'
+        BoxLayout:
+            size_hint_y: None
+            size_y: 200
+            Label:
+                id: TitoloCorsa
+                size_hint_y: .5
+                color: 1,0,0,1
+                font_size: 100
+                text: "Corsa"
+            BoxLayout:
+                id: upper_table
+                orientation: 'vertical'
+                size_hint_x: 1
+                font_size: 38
+                size_y: 200
+                BoxLayout:
+                    id: riga_1
+                    size_hint_y: .33
+                    Label:
+                        id: macchina_1
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: root.F_Nome_1()
+                    Label:
+                        id: pista
+                        canvas:
+                            Color:
+                                rgba: .5, .5, 0, .75
+                            Rectangle:
+                                size: self.size
+                                pos: self.pos
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: "pista_1"
+                BoxLayout:
+                    id: riga_2
+                    size_hint_y: .33
+                    Label:
+                        id: macchina_2
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: root.F_Nome_2()
+                    Label:
+                        id: pista
+                        canvas:
+                            Color:
+                                rgba: .5, .5, 0, .75
+                            Rectangle:
+                                size: self.size
+                                pos: self.pos
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: "pista_2"
+                BoxLayout:
+                    id: riga_3
+                    size_hint_y: .33
+                    Label:
+                        id: macchina_3
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: root.F_Nome_3()
+                    Label:
+                        id: pista
+                        canvas:
+                            Color:
+                                rgba: .5, .5, 0, .75
+                            Rectangle:
+                                size: self.size
+                                pos: self.pos
+                        font_size: upper_table.font_size
+                        color: 0, 1, 0, 1
+                        text: "pista_3"
+        BoxLayout:
+            size_hint_y: .05
+            size_hint_x: 1
+            #Spazio vuoto
+        BoxLayout:
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    font_size: 75
+                    id: timer
+                    size_hint_y: .25
+                    size_hint_x: 1
+                    canvas.before:
+                        Color:
+                            rgba: 0, 0, 0, 1
+                        Rectangle:
+                            pos: self.pos
+                            size: self.size
+                    color: 0, 1, .25, 1
+                    #font: 100
+                    text: "000:00"
+                BoxLayout:
+                    id: time_table
+                    orientation: 'vertical'
+                    font_size: 35
+                    BoxLayout:
+                        Label:
+                            size_hint_x: .33
+                            size_hint_y:1
+                            font_size: time_table.font_size
+                            text: macchina_1.text
+                            color: macchina_1.color
+                        Label:
+                            size_hint_x: .33
+                            size_hint_y:1
+                            font_size: time_table.font_size
+                            text: macchina_2.text
+                            color: macchina_2.color
+                        Label:
+                            size_hint_x: .33
+                            size_hint_y:1
+                            font_size: time_table.font_size
+                            text: macchina_3.text
+                            color: macchina_2.color
+                    BoxLayout:
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_1.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_2.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_3.color
+                    BoxLayout:
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_1.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_2.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_3.color
+                    BoxLayout:
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_1.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_2.color
+                        Label:
+                            size_hint_x: .33
+                            font_size: time_table.font_size
+                            text: "No Time"
+                            color: macchina_3.color
+                BoxLayout:
+                    size_hint_y: .5
+            BoxLayout:
+                orientation: 'vertical'
+                BoxLayout:
+                    BoxLayout:
+                        size_hint_y: 1
+                        size_hint_x: 1
+                        canvas:
+                            Color:
+                                rgba: 0, 0, 0, .9
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
+                        BoxLayout:
+                            #size_hint_y:1
+                            id: Red_Light
+                            bgcolor: 1, 0, 0, 1
+                            canvas:
+                                Color:
+                                    rgba: self.bgcolor
+                                Ellipse:
+                                    pos: self.pos
+                                    size: (self.size[0], self.size[0]) if (self.size[0] < self.size[1]) else (self.size[1], self.size[1])
+                        BoxLayout:
+                            id: Yellow_Light
+                            bgcolor: .9, .4, .1, 1
+                            canvas:
+                                Color:
+                                    rgba: self.bgcolor
+                                Ellipse:
+                                    pos: self.pos
+                                    size: (self.size[0], self.size[0]) if (self.size[0] < self.size[1]) else (self.size[1], self.size[1])
+                        BoxLayout:
+                            id: Green_Light
+                            bgcolor:  0, 1, 0, 1
+                            canvas:
+                                Color:
+                                    rgba: self.bgcolor
+                                Ellipse:
+                                    pos: self.pos
+                                    size: (self.size[0], self.size[0]) if (self.size[0] < self.size[1]) else (self.size[1], self.size[1])
+                BoxLayout:
+                    orientation: 'vertical'
+                    BoxLayout:
+                        id: Button_Box
+                        font_size: 30
+                        Button:
+                            id: start_button
+                            font_size: Button_Box.font_size
+                            background_color: .3, .9, .3, 1
+                            color: 0, 1, 0, 1
+                            disabled: True if ((start_button.color[0] == 1)or(start_button.color[2] == .1)) else False
+                            on_release: root.Start()
+                            text: "Start"
+                        Button:
+                            id: stop_button
+                            font_size: Button_Box.font_size
+                            background_color: 1, 0, 0 , 1
+                            color: 1, 0, 0, 1
+                            disabled: False if (stop_button.color[0] == 0) else True
+                            on_release: root.Stop()
+                            text: "Stop"
+                    Button:
+                        id: settings_button
+                        font_size: Button_Box.font_size
+                        color: 0, 1, 0, 1
+                        disabled: True if (settings_button.color[0] == 1) else False
+                        background_color: .3, .3, .9, 1
+                        text: "impostazioni"
+                        on_release: app.root.current = 'Impostazioni'
+                Label:
+                    #text: "test"
+
+<Impostazioni>
+    name: 'Impostazioni'
+    BoxLayout:
+        orientation: 'vertical'
+        canvas.before:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/Settings.jpg'
+        Label:
+            size_hint_y : .2
+            font_size: 75
+            color: 0, 0, 1, 1
+            text: "Impostazioni"
+        BoxLayout:
+            BoxLayout:
+                orientation:'vertical'
+                BoxLayout:
+                    size_y: 50
+                    Label:
+                        size_hint_y: 1
+                        font_size: 30
+                        color: .5, 0, 1, 1
+                        text:"Nome Corsa"
+                BoxLayout:
+                    size_y:100
+                    TextInput:
+                        id: Input_C
+                        size_hint_y: 1
+                        font_size: 30
+                        text: root.F_Nome_C()
+                        on_text: root.Check_Nome_C()
+                    Button:
+                        id: Button_Save_C
+                        background_color: (0, 1, 0, .75)
+                        size_hint_y: 1
+                        size_hint_x: .6
+                        font_size: 30
+                        text: "Save"
+                        on_release: root.Save_C()
+                BoxLayout:
+                    size_y: 50
+                    Label:
+                        size_hint_y: 1
+                        font_size: 30
+                        color: .5, 0, 1, 1
+                        text:"Nome Macchine"
+                BoxLayout:
+                    size_y:100
+                    TextInput:
+                        id: Input_N1
+                        size_hint_y: 1
+                        size_hint_x: .8
+                        font_size: 30
+                        text: root.F_Nome_1()
+                        on_text: root.Check_Nome_1()
+                    Button:
+                        id: Button_Save_N1
+                        background_color: (0, 1, 0, .75)
+                        size_hint_y: 1
+                        size_hint_x: .25
+                        font_size: 30
+                        text: "Save"
+                        on_release: root.Save_N1()
+                    Button:
+                        background_color: (0, 0, 1, .75)
+                        disabled: True if (Button_Save_N1.background_color[1] == 1) else False
+                        size_hint_y: 1
+                        font_size: 30
+                        size_hint_x: .25
+                        text: "Reset"
+                        on_release: Input_N1.text = root.F_Nome_1()
+                BoxLayout:
+                    size_y:100
+                    TextInput:
+                        id: Input_N2
+                        size_hint_y: 1
+                        size_hint_x: .8
+                        font_size: 30
+                        text: root.F_Nome_2()
+                        on_text: root.Check_Nome_2()
+                    Button:
+                        id: Button_Save_N2
+                        background_color: (0, 1, 0, .75)
+                        size_hint_y: 1
+                        font_size: 30
+                        size_hint_x: .25
+                        text: "Save"
+                        on_release: root.Save_N2()
+                    Button:
+                        background_color: (0, 0, 1, .75)
+                        disabled: True if (Button_Save_N2.background_color[1] == 1) else False
+                        size_hint_y: 1
+                        font_size: 30
+                        size_hint_x: .25
+                        text: "Reset"
+                        on_release: Input_N2.text = root.F_Nome_2()
+                BoxLayout:
+                    size_y: 100
+                    TextInput:
+                        id: Input_N3
+                        size_hint_y: 1
+                        size_hint_x: .8
+                        font_size: 30
+                        text: root.F_Nome_3()
+                        on_text: root.Check_Nome_3()
+                    Button:
+                        id: Button_Save_N3
+                        background_color: (0, 1, 0, .75)
+                        size_hint_y: 1
+                        font_size: 30
+                        size_hint_x: .25
+                        text: "Save"
+                        on_release: root.Save_N3()
+                    Button:
+                        background_color: (0, 0, 1, .75)
+                        disabled: True if (Button_Save_N3.background_color[1] == 1) else False
+                        size_hint_y: 1
+                        font_size: 30
+                        size_hint_x: .25
+                        text: "Reset"
+                        on_release: Input_N3.text = root.F_Nome_3()
+                Button:
+                    size_hint_y: 1
+                    font_size: 30
+                    text: "Race"
+                    on_release: app.root.current = 'Race'
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text: "campo vuoto"
+                Button:
+                    size_hint_y: .1
+                    yize_hint_x: .5
+                    font_size: 30
+                    text: "Home"
+                    on_release: app.root.current = 'Welcome'
+
+<WIP>
+    name:'WIP'
+    BoxLayout:
+        orientation: 'vertical'
+        canvas:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/WIP.jpg'
+        Label:
+            text: "Work In Progress"
+        Button:
+            size_hint_y: .2
+            text: 'Home'
+            on_release: app.root.current = 'Welcome'
+
+
+<SecondScreen>:
+    name: 'second'
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'second screen!'
+            font_size: 30
+        BoxLayout:
+            Button:
+                text: 'goto first screen'
+                font_size: 30
+                on_release: app.root.current = 'Welcome'
+            Button:
+                text: 'get random colour screen'
+                font_size: 30
+                on_release: app.root.new_colour_screen()
+<ColourScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        Label:
+            text: 'colour {:.2},{:.2},{:.2} screen'.format(*root.colour[:3])
+            font_size: 30
+        Widget:
+            canvas:
+                Color:
+                    rgba: root.colour
+                Ellipse:
+                    pos: self.pos
+                    size: self.size
+        BoxLayout:
+            Button:
+                text: 'goto first screen'
+                font_size: 30
+                on_release: app.root.current = 'first'
+            Button:
+                text: 'get random colour screen'
+                font_size: 30
+                on_release: app.root.new_colour_screen()
