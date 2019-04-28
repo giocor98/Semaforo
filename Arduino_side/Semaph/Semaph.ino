@@ -19,6 +19,9 @@ void HandleMessage();
 //Funzione che regola il funzionamento del Semaforo.
 void Semaforo();
 
+
+int Detect(int To);
+
 //Variabili per la gestione dei sensori
 int PinLedPista[3];
 int PinSensPista[3];
@@ -176,7 +179,7 @@ void Semaforo(){
   Serial.println("G");
 
 
-  PreCheck(10000, 1);
+  Detect(10000);
   RilasciaSensori();
   // Inizia la rilevazione dei sensori per detectare il passaggio delle macchinine.
   
@@ -269,4 +272,88 @@ void RilasciaSensori(){
     PistaSel[i] = false;
     digitalWrite(PinLedPista[i], LOW);
   }
+}
+
+//Funzione di detection
+//In : To int Time Out
+//Out: 0 se detectato, 1 se errore, 2 se almeno To, 3 se To su tutti
+int Detect(int To = 30000){
+  unsigned long int t_fin = millis() + To;
+  unsigned long int t_raise[3];
+  unsigned long int t_fall[3];
+  int tmp;
+  int n_piste = 0;
+  int i, j;
+
+  char mode_P[3];
+  int n_raised = 0;
+  int n_low = 0;
+
+  int n_cicli = 0;
+
+  //Conta le piste che deve controllare 
+  for(i = 0; i<3; i++){
+    if (PistaSel[i]){
+      n_piste ++;
+      mode_P[i] = 0; //La pista è settata come nella media
+      t_raise[i] = 0; //Azzero il tempo di salita
+      t_fall[i] = 0; //Azzero il tempo di caduta
+
+      Max_Pista[i] = Av_Pista[i] + soglia;
+      Min_Pista[i] = Av_Pista[i] - soglia;
+    }
+  }
+  unsigned long int t_St = micros();
+
+  //Finchè non sei in TimeOut e hai ancora piste da controllare
+  while ((millis()<t_fin)&&(n_piste>0)){
+    for(j=0; j<512; j++){
+      for(i=0; i<3; i++){
+        if (PistaSel[i]){
+          n_cicli++;
+          tmp = analogRead(PinSensPista[i]);
+          if (mode_P[i] == 0){
+            if(tmp>Max_Pista[i]){
+              t_raise[i] = micros();
+              mode_P[i] = 1;
+              n_raised ++;
+              if ( n_raised == n_piste){
+              }
+            }else if( tmp< Min_Pista[i]){
+              t_fall[i] = micros();
+              mode_P[i] = -1;
+              n_low ++;
+              if (n_low == n_piste){
+              }
+            }
+          }else if (mode_P[i]>0){
+            if(tmp<Max_Pista[i]){
+              t_fall[i] = micros();
+              mode_P[i] = 0;
+              n_raised --;
+              PistaSel[i]= false;
+              n_piste --;
+              Serial.println("S");
+            }
+          }else if (mode_P[i]<0){
+            if(tmp>Min_Pista[i]){
+              t_raise[i] = micros();
+              mode_P[i] = 0;
+              n_low --;
+              PistaSel[i] = false;
+              n_piste--;
+            }
+          }
+        }
+      }
+    }
+  }
+  Serial.println(n_cicli);
+  Serial.println(micros() - t_St);
+  for (i = 0; i<3; i++){
+    Serial.print(t_raise[i]);
+    Serial.print("r-l");
+    Serial.println(t_fall[i]);
+  }
+  return 0;
 }
