@@ -20,6 +20,15 @@ void HandleMessage();
 void Semaforo();
 
 
+//Variabili che contengono il momento di lettura del sensore
+unsigned long int TF[3];
+
+//Variabile che contiene l'istante dal quale parto a controllare
+unsigned long int TI = 0;
+
+
+
+
 int Detect(int To);
 
 //Variabili per la gestione dei sensori
@@ -178,11 +187,22 @@ void Semaforo(){
   //Invia il messaggio di "Green"
   Serial.println("G");
 
+  //Imposta il tempo di partenza
+  TI = micros();
 
-  Detect(10000);
-  RilasciaSensori();
   // Inizia la rilevazione dei sensori per detectare il passaggio delle macchinine.
-  
+  for(int i=0; i<3; i++){
+    //Controlla i sensori
+    Fast_Detect(10000);
+
+    //Printa il risultato dei sensori:
+    if (PrintRes()==0){
+      break;
+    }
+  }  
+
+  //Rilascia i sensori
+  RilasciaSensori();  
 }
 
 //Funzione che prepara i sensori (accende i led)
@@ -274,86 +294,91 @@ void RilasciaSensori(){
   }
 }
 
-//Funzione di detection
-//In : To int Time Out
-//Out: 0 se detectato, 1 se errore, 2 se almeno To, 3 se To su tutti
-int Detect(int To = 30000){
-  unsigned long int t_fin = millis() + To;
-  unsigned long int t_raise[3];
-  unsigned long int t_fall[3];
+//N_di cicli che esegue il codice
+#define N_CICLI_INTERNI 512
+
+//Funzione per un Detect piu' veloce (si spera)
+// In: To int con numero di millisecondi di timeout
+// Out: 
+void Fast_Detect (int To){
+  //Variabile con il tempo in cui la funzione è costretta a ritornare;
+  unsigned long int t_fin = millis()+To;
+  //Variabile temporanea per la lettura dei sensori
   int tmp;
+  //Variabile che contiene il numero di piste da controllare
   int n_piste = 0;
+  //Variabili per il tempo
+  unsigned long int T1 [3], T2[3];
+  //Booleano che indica il modo della pista: true se i parametri sono nella norma, false altrimenti
+  bool mod[3];
+  //Booleano che indica se i parametri attuali sono o meno nella norma
+  bool iR, PistaToCheck[3];
+  //Variabili di supporto
   int i, j;
 
-  char mode_P[3];
-  int n_raised = 0;
-  int n_low = 0;
-
-  int n_cicli = 0;
-
-  //Conta le piste che deve controllare 
-  for(i = 0; i<3; i++){
+  //Inizializzo il numero di piste e i paramtri delle piste
+  for(i=0; i<3; i++){
+    TF[i] = 0;
+    PistaToCheck[i] = false;
     if (PistaSel[i]){
-      n_piste ++;
-      mode_P[i] = 0; //La pista è settata come nella media
-      t_raise[i] = 0; //Azzero il tempo di salita
-      t_fall[i] = 0; //Azzero il tempo di caduta
+      n_piste ++;   //Aggiorna numero di piste da controllare
 
-      Max_Pista[i] = Av_Pista[i] + soglia;
-      Min_Pista[i] = Av_Pista[i] - soglia;
+      //Aggiorna i parametri delle piste
+      Max_Pista[i] = (Av_Pista[i] + soglia);
+      Min_Pista[i] = (Av_Pista[i] - soglia);
+      mod[i] = true;
+      PistaToCheck[i] = true;
     }
   }
-  unsigned long int t_St = micros();
-
-  //Finchè non sei in TimeOut e hai ancora piste da controllare
-  while ((millis()<t_fin)&&(n_piste>0)){
-    for(j=0; j<512; j++){
-      for(i=0; i<3; i++){
-        if (PistaSel[i]){
-          n_cicli++;
+    
+  //Finchè non va in timeout e ci sono piste da controllare  
+  while (millis()<t_fin){
+    for(j=0; j<N_CICLI_INTERNI; j++){
+      //Ciclo su tutte le piste
+      for(i=0;i<3;i++){
+        //Se la pista non è selezionata ripeti il ciclo
+        if (PistaToCheck[i] == true){
+          //Leggo il sensore
           tmp = analogRead(PinSensPista[i]);
-          if (mode_P[i] == 0){
-            if(tmp>Max_Pista[i]){
-              t_raise[i] = micros();
-              mode_P[i] = 1;
-              n_raised ++;
-              if ( n_raised == n_piste){
-              }
-            }else if( tmp< Min_Pista[i]){
-              t_fall[i] = micros();
-              mode_P[i] = -1;
-              n_low ++;
-              if (n_low == n_piste){
-              }
-            }
-          }else if (mode_P[i]>0){
-            if(tmp<Max_Pista[i]){
-              t_fall[i] = micros();
-              mode_P[i] = 0;
-              n_raised --;
-              PistaSel[i]= false;
+          //Calcolo se la lettura è nel range
+          iR = ((tmp<Max_Pista[i])&&(tmp>Min_Pista[i]));
+  
+           //Se la iR e il mod della pistaa non sono concordi, allora è cambiata la situazione della pista
+          if(mod[i] != iR){
+            if(iR){
+              PistaToCheck[i] = false;
+              TF[i] = micros();
               n_piste --;
-              Serial.println("S");
+              if(n_piste == 0){
+                return;
+              }
             }
-          }else if (mode_P[i]<0){
-            if(tmp>Min_Pista[i]){
-              t_raise[i] = micros();
-              mode_P[i] = 0;
-              n_low --;
-              PistaSel[i] = false;
-              n_piste--;
-            }
+            mod[i] = iR;
           }
         }
       }
     }
   }
-  Serial.println(n_cicli);
-  Serial.println(micros() - t_St);
-  for (i = 0; i<3; i++){
-    Serial.print(t_raise[i]);
-    Serial.print("r-l");
-    Serial.println(t_fall[i]);
+}
+
+//Funzione che Printa i risultati dei sensori
+//In : null
+//Out : if 3*To then 0, else 1
+int PrintRes(){
+  int c = 0;
+  Serial.println("D:");
+  for(int i = 0; i<3; i++){
+    Serial.print(i);
+    Serial.print(" : ");
+    if (TF[i] > 0){
+      Serial.println(TF[i] - TI);
+    }else{
+      Serial.println("To");
+      c++;
+    }
   }
-  return 0;
+  if(c>=3){
+    return 0;
+  }
+  return 1;
 }
