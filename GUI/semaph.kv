@@ -20,7 +20,15 @@ MyScreenManager:
                 size: self.size
                 source: './multimedia/sfondi/Welcome.jpg'
         Label:
+            canvas:
+                Color:
+                    rgba: .1, .1, .1, .3
+                Rectangle:
+                    pos: self.pos
+                    size : self.size
+
             text: 'Mini 4WD'
+            size: self.texture.size
             color: 1, 0, 0, 1
             markup: True
             font_size: 70
@@ -28,13 +36,17 @@ MyScreenManager:
             height: root.height*3/4
         BoxLayout:
             Button:
+                background_color: .2, .7, .4, .7
                 text: 'Gara!'
                 font_size: 40
                 on_release: root.PreRace()
+                border: 25, 15, 0, 0
             Button:
+                background_color: .2, .3, .4, .7
                 text: 'Impostazioni'
                 font_size: 40
                 on_release: app.root.current = 'WIP'
+                border: 25, 0, 0, 15
 
 <Error>:
     BoxLayout:
@@ -61,15 +73,21 @@ MyScreenManager:
             height: root.height/2
         BoxLayout:
             Button:
+                border: 25, 15, 0, 0
+                background_color: .2, .7, .4, .7
                 text: 'Home'
                 font_size: 40
                 on_release: app.root.current = 'Welcome'
             Button:
+                border: 25, 0, 0, 15
+                background_color: .7, .2, .4, .7
                 text: 'Esci'
                 font_size: 40
                 on_release: quit()
         BoxLayout:
             Button:
+                border: 15, 0, 15, 0
+                background_color: .2, .7, .1, .7
                 text: 'Go To Race Anyway'
                 font_size: 40
                 on_release: app.root.current = 'Impostazioni'
