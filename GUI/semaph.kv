@@ -22,13 +22,12 @@ MyScreenManager:
         Label:
             canvas:
                 Color:
-                    rgba: .1, .1, .1, .3
+                    rgba: .1, .4, .2, .3
                 Rectangle:
-                    pos: self.pos
-                    size : self.size
+                    pos: (self.width/2 - 150 , self.height*3/4)
+                    size : (300, self.font_size+10)
 
             text: 'Mini 4WD'
-            size: self.texture.size
             color: 1, 0, 0, 1
             markup: True
             font_size: 70
@@ -65,8 +64,15 @@ MyScreenManager:
             size_hint_y: None
             height: root.height/4
         Label:
+            canvas.before:
+                Color:
+                    rgba: .7, .2, .1, .8
+                RoundedRectangle:
+                    pos: (self.pos[0]+5, self.pos[1] + 5)
+                    size: (self.size[0]-10, self.size[1] -10)
+                    radius: [50, 50, 50, 50]
             text: root.ErrCode()
-            color: .7, .5, .3, 1
+            color: .2, .7, .3, 1
             markup: True
             font_size: 30
             size_hint_y: None
@@ -125,7 +131,7 @@ MyScreenManager:
                     Label:
                         id: macchina_1
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .8, .2, 1
                         text: root.F_Nome_1()
                     Label:
                         id: pista
@@ -136,7 +142,7 @@ MyScreenManager:
                                 size: self.size
                                 pos: self.pos
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .8, .2, 1
                         text: "pista_1"
                 BoxLayout:
                     id: riga_2
@@ -144,7 +150,7 @@ MyScreenManager:
                     Label:
                         id: macchina_2
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .2, .8, .2, 1
                         text: root.F_Nome_2()
                     Label:
                         id: pista
@@ -155,7 +161,7 @@ MyScreenManager:
                                 size: self.size
                                 pos: self.pos
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .8, .2, 1
                         text: "pista_2"
                 BoxLayout:
                     id: riga_3
@@ -163,7 +169,7 @@ MyScreenManager:
                     Label:
                         id: macchina_3
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .8, .2, 1
                         text: root.F_Nome_3()
                     Label:
                         id: pista
@@ -174,7 +180,7 @@ MyScreenManager:
                                 size: self.size
                                 pos: self.pos
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .8, .2, 1
                         text: "pista_3"
         BoxLayout:
             size_hint_y: .05
@@ -191,9 +197,11 @@ MyScreenManager:
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
+                        RoundedRectangle:
+                            pos: (self.pos [0] + self.size[0]/10, self.pos[1])
+                            size: (self.size[0]*4/5, self.size[1])
+                            radius: [10, 10, 10, 10]
+
                     color: 0, 1, .25, 1
                     #font: 100
                     text: "000:00"
@@ -202,6 +210,13 @@ MyScreenManager:
                     orientation: 'vertical'
                     font_size: 35
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius : 30, 30, 0, 0
                         Label:
                             size_hint_x: .33
                             size_hint_y:1
@@ -221,6 +236,12 @@ MyScreenManager:
                             text: macchina_3.text
                             color: macchina_2.color
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                         Label:
                             size_hint_x: .33
                             font_size: time_table.font_size
@@ -237,6 +258,12 @@ MyScreenManager:
                             text: "No Time"
                             color: macchina_3.color
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                         Label:
                             size_hint_x: .33
                             font_size: time_table.font_size
@@ -253,6 +280,13 @@ MyScreenManager:
                             text: "No Time"
                             color: macchina_3.color
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius : 0, 0, 30, 30
                         Label:
                             size_hint_x: .33
                             font_size: time_table.font_size
@@ -279,9 +313,11 @@ MyScreenManager:
                         canvas:
                             Color:
                                 rgba: 0, 0, 0, .9
-                            Rectangle:
+                            RoundedRectangle:
                                 pos: self.pos
                                 size: self.size
+                                radius: [30, 20, 20, 30]
+
                         BoxLayout:
                             #size_hint_y:1
                             id: Red_Light
@@ -318,7 +354,8 @@ MyScreenManager:
                         Button:
                             id: start_button
                             font_size: Button_Box.font_size
-                            background_color: .3, .9, .3, 1
+                            background_color: .3, .9, .2, .9
+                            border: 15, 15,0, 0
                             color: 0, 1, 0, 1
                             disabled: True if ((start_button.color[0] == 1)or(start_button.color[2] == .1)) else False
                             on_release: root.Start()
@@ -326,7 +363,8 @@ MyScreenManager:
                         Button:
                             id: stop_button
                             font_size: Button_Box.font_size
-                            background_color: 1, 0, 0 , 1
+                            background_color: 1, .1, .1 , .9
+                            border: 15, 0, 0, 15
                             color: 1, 0, 0, 1
                             disabled: False if (stop_button.color[0] == 0) else True
                             on_release: root.Stop()
@@ -334,6 +372,7 @@ MyScreenManager:
                     Button:
                         id: settings_button
                         font_size: Button_Box.font_size
+                        border: 0, 15, 15, 0
                         color: 0, 1, 0, 1
                         disabled: True if (settings_button.color[0] == 1) else False
                         background_color: .3, .3, .9, 1
@@ -362,6 +401,13 @@ MyScreenManager:
                 BoxLayout:
                     size_y: 50
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .6, .6, .3, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [50, 50, 50, 50]
                         size_hint_y: 1
                         font_size: 30
                         color: .5, 0, 1, 1
@@ -377,6 +423,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_C
                         background_color: (0, 1, 0, .75)
+                        border: 25, 10, 0, 0
                         size_hint_y: 1
                         size_hint_x: .6
                         font_size: 30
@@ -385,6 +432,14 @@ MyScreenManager:
                 BoxLayout:
                     size_y: 50
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .6, .6, .3, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [50, 50, 50, 50]
+
                         size_hint_y: 1
                         font_size: 30
                         color: .5, 0, 1, 1
@@ -401,6 +456,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N1
                         background_color: (0, 1, 0, .75)
+                        border: 25, 10, 0, 0
                         size_hint_y: 1
                         size_hint_x: .25
                         font_size: 30
@@ -408,6 +464,7 @@ MyScreenManager:
                         on_release: root.Save_N1()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 25, 0, 0, 10
                         disabled: True if (Button_Save_N1.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -426,6 +483,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N2
                         background_color: (0, 1, 0, .75)
+                        border: 0, 10, 0, 0
                         size_hint_y: 1
                         font_size: 30
                         size_hint_x: .25
@@ -433,6 +491,7 @@ MyScreenManager:
                         on_release: root.Save_N2()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 0, 0, 0, 10
                         disabled: True if (Button_Save_N2.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -451,6 +510,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N3
                         background_color: (0, 1, 0, .75)
+                        border: 0, 10, 25, 0
                         size_hint_y: 1
                         font_size: 30
                         size_hint_x: .25
@@ -458,6 +518,7 @@ MyScreenManager:
                         on_release: root.Save_N3()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 0, 0, 25, 10
                         disabled: True if (Button_Save_N3.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -465,6 +526,8 @@ MyScreenManager:
                         text: "Reset"
                         on_release: Input_N3.text = root.F_Nome_3()
                 Button:
+                    background_color: (.25, .8, .2, .75)
+                    border: 15, 10, 0, 0
                     size_hint_y: 1
                     font_size: 30
                     text: "Race"
@@ -474,7 +537,9 @@ MyScreenManager:
                 Label:
                     text: "campo vuoto"
                 Button:
-                    size_hint_y: .1
+                    background_color: (.8, .25, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
                     yize_hint_x: .5
                     font_size: 30
                     text: "Home"

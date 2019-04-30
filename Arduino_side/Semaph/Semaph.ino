@@ -270,17 +270,6 @@ char PreCheck(int t, int mode){
       n_cicli++;
     }
   }
-  Serial.println("Fine_Check");
-  for(i = 0; i<3; i++){
-    Av_Pista[i] = sum[i]/n_cicli;
-    Serial.print("m:");
-    Serial.print(Min_Pista[i]);
-    Serial.print("e:");
-    Serial.print(Av_Pista[i]);
-    Serial.print("M:");
-    Serial.println(Max_Pista[i]);
-  }
-  Serial.println(n_cicli);
   return 0;
 }
 
