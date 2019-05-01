@@ -71,7 +71,6 @@ void setup() {
   digitalWrite(LED_P_2, LOW);
   //Inizializzo la seriale a 115200
   Serial.begin(115200);
-
 }
 
 void loop() {
@@ -116,12 +115,20 @@ void HandleMessage(){
     //Se è S il messaggio, allora avvio la sequenza del semaforo
     if(msg[n] == 'S'){
       Semaforo();
+      EndSem();
+      return;
+    }
+    //Se il messaggio è H rispondo con A
+    if(msg[n] == 'H'){
+      Serial.println("A");
+      return;
     }
   }else{
     //Se il Messaggio è di lunghezza maggiore di 1
     n = MAX_MSGLEN-1;
-    if(msg[n] == 's'){
-      //Se il messaggio ha il primo carattere 's'
+    if((msg[n] == 's')||(msg[n] == 'c')){
+      //Se il messaggio ha il primo carattere 's' o  'c'
+      char f = msg[n];
 
       //Imposto tutte le PistaSel a false 
       for (int i=0; i<3; i++){
@@ -137,6 +144,12 @@ void HandleMessage(){
           PistaSel[2] = true;
         }
         n--;
+      }
+      Serial.println("A");
+
+      //se il primo carattere era c
+      if(f == 'c'){
+        ControllaSensori();
       }
     }
   }
@@ -164,6 +177,9 @@ void Semaforo(){
   digitalWrite(RED, HIGH);
   //Invia il messaggio di "Red"
   Serial.println("R");
+  while(Serial.available()){
+    Serial.read();
+  }
 
   //Aspetta 1 secondo
   //TODO: Effettuare i controlli inquesto secondo sui sensori
@@ -186,20 +202,21 @@ void Semaforo(){
   digitalWrite(RED, HIGH);
   //Invia il messaggio di "Green"
   Serial.println("G");
+  while(Serial.available()){
+    if(Serial.read() == 'H'){
+      Serial.println("A");
+      break;
+    }
+  }
 
   //Imposta il tempo di partenza
   TI = micros();
 
   // Inizia la rilevazione dei sensori per detectare il passaggio delle macchinine.
-  for(int i=0; i<3; i++){
-    //Controlla i sensori
-    Fast_Detect(10000);
+  //Controlla i sensori
+  Fast_Detect(10000);
 
-    //Printa il risultato dei sensori:
-    if (PrintRes()==0){
-      break;
-    }
-  }  
+  PrintRes();
 
   //Rilascia i sensori
   RilasciaSensori();  
@@ -210,9 +227,7 @@ void Semaforo(){
 //Out: null
 void PreparaSensori(){
   for (int i=0; i<3; i++){
-    if (PistaSel[i]){
-      digitalWrite(PinLedPista[i], HIGH);
-    }
+    digitalWrite(PinLedPista[i], HIGH);
   }
 }
 
@@ -321,7 +336,7 @@ void Fast_Detect (int To){
   }
     
   //Finchè non va in timeout e ci sono piste da controllare  
-  while (millis()<t_fin){
+  while ((millis()<t_fin)&&(!Serial.available())){
     for(j=0; j<N_CICLI_INTERNI; j++){
       //Ciclo su tutte le piste
       for(i=0;i<3;i++){
@@ -352,9 +367,20 @@ void Fast_Detect (int To){
 
 //Funzione che Printa i risultati dei sensori
 //In : null
-//Out : if 3*To then 0, else 1
+//Out : if 3*To or Halt signal arrived then 0, else 1;
 int PrintRes(){
   int c = 0;
+  if (Serial.available()){
+    char c, g = 0;
+    do{
+      c = g;
+      g = Serial.read();
+    }while(Serial.available());
+    if ((c == 'H')&&(g == '\n')){
+      Serial.println("A");
+    }
+    return 0; 
+  }
   Serial.println("D:");
   for(int i = 0; i<3; i++){
     Serial.print(i);
@@ -370,4 +396,26 @@ int PrintRes(){
     return 0;
   }
   return 1;
+}
+
+//Funzione che termina lutilizzo dei sensori: Spegne tutte le luci e il semaforo
+void EndSem () {
+  for (int i=0; i<3; i++){
+    digitalWrite(PinLedPista[i], LOW);
+    PistaSel[i] = false;
+  }
+  digitalWrite(RED, LOW);
+  digitalWrite(YELLOW, LOW);
+  digitalWrite(GREEN, LOW);
+}
+
+//Funzione che controlla i sensori
+//In: null
+//Out: null
+void ControllaSensori(){
+  PreparaSensori();
+  PreCheck(1000, 0);
+  Fast_Detect(10000);
+  PrintRes();
+  EndSem();
 }

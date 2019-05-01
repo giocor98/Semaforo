@@ -8,6 +8,7 @@ MyScreenManager:
     Race:
     Impostazioni:
     WIP:
+    MoreOptions:
 
 <Welcome>:
     name: 'Welcome'
@@ -44,7 +45,7 @@ MyScreenManager:
                 background_color: .2, .3, .4, .7
                 text: 'Impostazioni'
                 font_size: 40
-                on_release: app.root.current = 'WIP'
+                on_release: app.root.current = 'MoreOptions'
                 border: 25, 0, 0, 15
 
 <Error>:
@@ -567,6 +568,28 @@ MyScreenManager:
                     font_size: 30
                     text: "Home"
                     on_release: app.root.current = 'Welcome'
+
+<MoreOptions>
+    name:'MoreOptions'
+    BoxLayout:
+        orientation: 'vertical'
+        canvas:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/MoreOptions.jpg'
+        Label:
+            id: Titolo
+            size_hint_y: .1
+            font_size: 35
+            color: 1, 0, 0, 1
+            text: "More Options"
+        BoxLayout:
+            #vuoto
+        Button:
+            size_hint_y: .2
+            text: 'Home'
+            on_release: app.root.current = 'Welcome'
 
 <WIP>
     name:'WIP'

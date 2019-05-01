@@ -469,6 +469,9 @@ class MyScreenManager(ScreenManager):
         self.current = name
     pass
 
+class MoreOptions(Screen):
+    pass
+
 class WIP(Screen):
     pass
 
