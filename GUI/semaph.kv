@@ -233,21 +233,21 @@ MyScreenManager:
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_1.text if(root.CM1) else ""
+                            text: root.Last_Runners[0]
                             color: (.1, .7, .2, 1) if (root.IP1) else (.7, .1, .2, 1)
                         Label:
                             id: Table_Macchina_2
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_2.text if(root.CM2) else ""
+                            text: root.Last_Runners[1]
                             color: (.1, .7, .2, 1) if (root.IP2) else (.7, .1, .2, 1)
                         Label:
                             id: Table_Macchina_3
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_3.text if(root.CM3) else ""
+                            text: root.Last_Runners[2]
                             color: (.1, .7, .2, 1) if (root.IP3) else (.7, .1, .2, 1)
                     BoxLayout:
                         canvas.before:
@@ -260,19 +260,19 @@ MyScreenManager:
                             id: tempo11
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[0] if (root.CM1) else ""
+                            text: root.TempoPiste[0] if (not(root.Last_Runners[0] == "")) else ""
                             color: Table_Macchina_1.color
                         Label:
                             id: tempo21
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[1] if (root.CM2) else ""
+                            text: root.TempoPiste[1] if (not(root.Last_Runners[1] == "")) else ""
                             color: Table_Macchina_2.color
                         Label:
                             id: tempo31
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[2] if (root.CM3) else ""
+                            text: root.TempoPiste[2] if (not(root.Last_Runners[2] == "")) else ""
                             color: Table_Macchina_3.color
                     BoxLayout:
                         canvas.before:
@@ -285,19 +285,19 @@ MyScreenManager:
                             id: tempo12
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[3] if (root.CM1) else ""
+                            text: root.TempoPiste[3] if (not(root.Last_Runners[0] == "")) else ""
                             color: Table_Macchina_1.color
                         Label:
                             id: tempo22
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[4] if (root.CM2) else ""
+                            text: root.TempoPiste[4] if (not(root.Last_Runners[1] == "")) else ""
                             color: Table_Macchina_2.color
                         Label:
                             id: tempo32
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[5] if (root.CM3) else ""
+                            text: root.TempoPiste[5] if (not(root.Last_Runners[2] == "")) else ""
                             color: Table_Macchina_3.color
                     BoxLayout:
                         canvas.before:
@@ -311,19 +311,19 @@ MyScreenManager:
                             id: tempo13
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[6] if (root.CM1) else ""
+                            text: root.TempoPiste[6] if (not(root.Last_Runners[0] == "")) else ""
                             color: Table_Macchina_1.color
                         Label:
                             id: tempo23
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[7] if (root.CM2) else ""
+                            text: root.TempoPiste[7] if (not(root.Last_Runners[1] == "")) else ""
                             color: Table_Macchina_2.color
                         Label:
                             id: tempo33
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: root.TempoPiste[8] if (root.CM3) else ""
+                            text: root.TempoPiste[8] if (not(root.Last_Runners[2] == "")) else ""
                             color: Table_Macchina_3.color
                 BoxLayout:
                     size_hint_y: .5
@@ -583,7 +583,6 @@ MyScreenManager:
             size_hint_y: .2
             text: 'Home'
             on_release: app.root.current = 'Welcome'
-
 
 <SecondScreen>:
     name: 'second'
