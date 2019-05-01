@@ -4,6 +4,8 @@ from kivy.lang import Builder
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 
+from kivy.properties import BooleanProperty, StringProperty
+
 from kivy.clock import Clock
 
 from kivy.uix.widget import Widget
@@ -23,6 +25,11 @@ STo = 0
 Nome_Macchina_1 = "Macchina_1"
 Nome_Macchina_2 = "Macchina_2"
 Nome_Macchina_3 = "Macchina_3"
+
+Corre_Macchina_1 = True
+Corre_Macchina_2 = True
+Corre_Macchina_3 = True
+
 Nome_Corsa = "Corsa"
 
 class Welcome(Screen):
@@ -53,6 +60,16 @@ class SecondScreen(Screen):
 
 class Race(Screen):
 
+    CM1 = BooleanProperty(Corre_Macchina_1)
+    CM2 = BooleanProperty(Corre_Macchina_2)
+    CM3 = BooleanProperty(Corre_Macchina_3)
+
+    IP1 = BooleanProperty(True)
+    IP2 = BooleanProperty(True)
+    IP3 = BooleanProperty(True)
+
+    TempoPiste = ListProperty(["No Time","No Time", "No Time", "No Time", "No Time", "No Time","No Time", "No Time", "No Time"] )
+
     def Aggiorna(self, *args):
         global Nome_Macchina_1
         global Nome_Macchina_2
@@ -75,15 +92,26 @@ class Race(Screen):
 
     def F_Nome_1(self, *args):
         global Nome_Macchina_1
-        return Nome_Macchina_1
+        global Corre_Macchina_1
+        if (Corre_Macchina_1):
+            return Nome_Macchina_1
+        else:
+            return ""
 
     def F_Nome_2(self, *args):
         global Nome_Macchina_2
-        return Nome_Macchina_2
+        if (Corre_Macchina_2):
+            return Nome_Macchina_2
+        else:
+            return ""
 
     def F_Nome_3(self, *args):
         global Nome_Macchina_3
-        return Nome_Macchina_3
+        global Corre_Macchina_3
+        if (Corre_Macchina_3):
+            return Nome_Macchina_3
+        else:
+            return ""
 
     def Counter(self, *args):
         global T

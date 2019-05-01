@@ -111,11 +111,10 @@ MyScreenManager:
                 size: self.size
                 source: './multimedia/sfondi/Race.jpg'
         BoxLayout:
-            size_hint_y: None
-            size_y: 200
+            size_hint_y: .27
             Label:
                 id: TitoloCorsa
-                size_hint_y: .5
+                size_hint_y: 1
                 color: 1,0,0,1
                 font_size: 100
                 text: "Corsa"
@@ -123,65 +122,77 @@ MyScreenManager:
                 id: upper_table
                 orientation: 'vertical'
                 size_hint_x: 1
-                font_size: 38
-                size_y: 200
+                font_size: 35
+                size_y: 300
                 BoxLayout:
                     id: riga_1
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
+                                size: self.size
+                                pos: self.pos
+                                radius: [20, 0, 0, 0]
                         id: macchina_1
                         font_size: upper_table.font_size
-                        color: .1, .8, .2, 1
+                        color: .1, .2, .6, 1
                         text: root.F_Nome_1()
-                    Label:
-                        id: pista
-                        canvas:
-                            Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
-                                size: self.size
-                                pos: self.pos
+                    Button:
+                        id: Ch_Bottone_Macchina_1
                         font_size: upper_table.font_size
-                        color: .1, .8, .2, 1
-                        text: "pista_1"
+                        text: "Rimuovi" if (root.CM1) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM1) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM1 = not root.CM1
                 BoxLayout:
                     id: riga_2
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
+                                size: self.size
+                                pos: self.pos
+                                radius: [0, 0, 0, 0]
                         id: macchina_2
                         font_size: upper_table.font_size
-                        color: .2, .8, .2, 1
+                        color: .1, .2, .6, 1
                         text: root.F_Nome_2()
-                    Label:
-                        id: pista
-                        canvas:
-                            Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
-                                size: self.size
-                                pos: self.pos
+                    Button:
+                        id: Ch_Bottone_Macchina_2
                         font_size: upper_table.font_size
-                        color: .1, .8, .2, 1
-                        text: "pista_2"
+                        text: "Rimuovi" if (root.CM2) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM2) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM2 = not root.CM2
                 BoxLayout:
                     id: riga_3
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
-                        id: macchina_3
-                        font_size: upper_table.font_size
-                        color: .1, .8, .2, 1
-                        text: root.F_Nome_3()
-                    Label:
-                        id: pista
-                        canvas:
+                        canvas.before:
                             Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
                                 size: self.size
                                 pos: self.pos
+                                radius: [0, 0, 0, 20]
+                        id: macchina_3
                         font_size: upper_table.font_size
-                        color: .1, .8, .2, 1
-                        text: "pista_3"
+                        color: .1, .2, .6, 1
+                        text: root.F_Nome_3()
+                    Button:
+                        id: Ch_Bottone_Macchina_3
+                        font_size: upper_table.font_size
+                        text: "Rimuovi" if (root.CM3) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM3) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM3 = not root.CM3
         BoxLayout:
             size_hint_y: .05
             size_hint_x: 1
@@ -218,23 +229,26 @@ MyScreenManager:
                                 size: self.size
                                 radius : 30, 30, 0, 0
                         Label:
+                            id: Table_Macchina_1
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_1.text
-                            color: macchina_1.color
+                            text: macchina_1.text if(root.CM1) else ""
+                            color: (.1, .7, .2, 1) if (root.IP1) else (.7, .1, .2, 1)
                         Label:
+                            id: Table_Macchina_2
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_2.text
-                            color: macchina_2.color
+                            text: macchina_2.text if(root.CM2) else ""
+                            color: (.1, .7, .2, 1) if (root.IP2) else (.7, .1, .2, 1)
                         Label:
+                            id: Table_Macchina_3
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_3.text
-                            color: macchina_2.color
+                            text: macchina_3.text if(root.CM3) else ""
+                            color: (.1, .7, .2, 1) if (root.IP3) else (.7, .1, .2, 1)
                     BoxLayout:
                         canvas.before:
                             Color:
@@ -243,20 +257,23 @@ MyScreenManager:
                                 pos: self.pos
                                 size: self.size
                         Label:
+                            id: tempo11
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[0] if (root.CM1) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo21
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[1] if (root.CM2) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo31
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[2] if (root.CM3) else ""
+                            color: Table_Macchina_3.color
                     BoxLayout:
                         canvas.before:
                             Color:
@@ -265,20 +282,23 @@ MyScreenManager:
                                 pos: self.pos
                                 size: self.size
                         Label:
+                            id: tempo12
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[3] if (root.CM1) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo22
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[4] if (root.CM2) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo32
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[5] if (root.CM3) else ""
+                            color: Table_Macchina_3.color
                     BoxLayout:
                         canvas.before:
                             Color:
@@ -288,20 +308,23 @@ MyScreenManager:
                                 size: self.size
                                 radius : 0, 0, 30, 30
                         Label:
+                            id: tempo13
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[6] if (root.CM1) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo23
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[7] if (root.CM2) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo33
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[8] if (root.CM3) else ""
+                            color: Table_Macchina_3.color
                 BoxLayout:
                     size_hint_y: .5
             BoxLayout:
