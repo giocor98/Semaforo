@@ -39,6 +39,376 @@ Nome_Corsa = "Corsa"
 tipoPista = 1
 LastGiro = 3
 
+#funzioni per l'Arduino
+
+SerErr = False              #Variabile con l'errore della seriale
+SerErrReady = False         #Variabile che dice se SerErr è pronto da leggere o meno
+SerStr = ""                 #Variabile con l'ultima stringa inviata
+SerOccupata = False         #Variabile che indica se la Seriale è o meno occupata
+SerNControlli = 0           #Variabile he conta i Controlli della seriale
+
+Ser_TipoSensore = 0
+Ser_To = 0
+Ser_Tc = 0
+
+def SerCheckFree():
+    global SerErr
+    global SerStr
+    global SerOccupata
+    global SerNControlli
+    global SerErrReady
+
+    print ("SerCheckFree")
+
+    if SerOccupata:
+        return False
+    else:
+        if CheckSer()==0:
+            return False
+        SerOccupata = True
+        SerErr = False
+        if SerErrReady:
+            sleep(1.5)
+            SerErrRead = False
+        SerStr = ""
+        SerNControlli = 0
+        Clock.schedule_once(ExtremeReleaser, 1.5)
+        return True
+
+def ExtremeReleaser():
+    global SerOccupata
+    global SerStr
+    global SerErrReady
+    global SerErr
+
+    print("ExtremeReleaser")
+
+    SerOccupata = False
+    SerStr = ""
+    SerErr = True
+    SerErrReady = True
+    Clock.unschedule(SerCheckAnsw)
+    Clock.unschedule(ExtremeReleaser)
+    Clock.schedule_once(LastRelease, 1.5)
+
+def LastRelease():
+    global SerOccupata
+    global SerStr
+    global SerErrReady
+    global SerErr
+
+    print ("LastRelease")
+
+    SerOccupata = False
+    SerStr = ""
+    SerErr = False
+    SerErrReady = False
+    Clock.unschedule(SerCheckAnsw)
+    Clock.unschedule(ExtremeReleaser)
+    Clock.unschedule(LastRelease)
+    Clock.unschedule(CheckSerErr)
+
+def SerScrivi(PS):
+    global SerOccupata
+    global SerStr
+    global ser
+
+    if PS[-1] != '\n':
+        if SerStr == PS:
+            PS = PS+"\n"
+            SerStr = PS
+
+    if SerOccupata:
+        if (PS != SerStr):
+            if (SerStr == ""):
+                SerStr = PS
+            else:
+                SerOccupata=False
+                return False
+        try:
+            ser.write(SerStr.encode())
+            Clock.schedule_interval(SerCheckAnsw, .3)
+            return True
+        except:
+            LastRelease()
+            return False
+    else:
+        LastRelease()
+        return False
+
+def SerCheckAnsw():
+    global SerOccupata
+    global SerStr
+    global SerNControlli
+    global ser
+
+    if SerOccupata:
+        if ser.in_waiting > 0:
+            c = ser.read()
+            c = c.decode()
+            while((ser.in_waiting > 0)and(c!='E')and(c!='E')):
+                c = ser.read()
+                c = c.decode()
+            if c == 'A':
+                SerOccupata = False
+                SerErr = False
+                SerErrReady = True
+                SerStr = ""
+                Clock.unschedule(SerCheckAnsw)
+                Clock.unschedule(ExtremeReleaser)
+                Clock.schedule_once(LastRelease, 1.5)
+            elif c == 'E' :
+                SerOccupata = False
+                SerErr = True
+                SerErrReady = True
+                SerStr = ""
+                Clock.unschedule(SerCheckAnsw)
+                Clock.unschedule(ExtremeReleaser)
+                Clock.schedule_once(LastRelease, 1.5)
+        else:
+            SerNControlli = SerNControlli +1
+            if SerNControlli%4 == 0:
+                Clock.unschedule(SerCheckAnsw)
+                SerScrivi(SerStr)
+    else:
+        Clock.unschedule(SerCheckAnsw)
+
+def CheckSerErr():
+    global SerErr
+    global SerOccupata
+    global SerReady
+
+    if SerOccupata:
+        return 0
+    else:
+        if (SerReady):
+            if SerErr:
+                Clock.unschedule(LastRelease)
+                SerReady = False
+                return 1
+            else:
+                Clock.unschedule(LastRelease)
+                SerReady = False
+                return -1
+
+def GeneralCheckSerErr():
+    for i in range(4):
+        sleep(.5)
+        c = ChekSerErr()
+        if(c==1):
+            return True
+        elif (c == -1):
+            return False
+    return False
+
+
+def SerPing():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "P\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerImpostaTipoSensori(tipo):
+    global SerStr
+
+    if SerCheckFree():
+        try:
+            tipo = str(tipo)
+        except:
+            return False
+        SerStr = "p" + tipo + "\n"
+        return SerScrivi(SerStr)
+
+    else:
+        return False
+
+def SerImpostaSensori(listaSensori):
+    global SerStr
+    global SerErr
+
+    if SerCheckFree():
+        SerStr = "s"
+        for i in range(3):
+            if listaSensori[i]== True:
+                SerStr += str(i)
+        if SerStr == "s":
+            SerErr = True
+            ErrorDesc = "Nessuna pista selezionata"
+            LastRelease()
+            return False
+        SerStr = SerStr + "\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerPreparaSensori():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "R\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerRilasciaSensori():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "r\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerImpostaTipoTimeOut(tempo):
+    global SerStr
+
+    if SerCheckFree():
+        try:
+            tempo = str(int(tempo))
+        except:
+            return False
+        SerStr = "T" + tempo + "\n"
+        return SerScrivi(SerStr)
+
+    else:
+        return False
+
+def SerImpostaTipoTimeCheck(tempo):
+    global SerStr
+
+    if SerCheckFree():
+        try:
+            tempo = str(int(tempo))
+        except:
+            return False
+        SerStr = "t" + tempo + "\n"
+        return SerScrivi(SerStr)
+
+    else:
+        return False
+
+def SerCheckSensori():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "C\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerDetectSensori():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "D\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerSemaforo():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "S\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+def SerHalt():
+    global SerStr
+
+    if SerCheckFree():
+        SerStr = "H\n"
+        return SerScrivi(SerStr)
+    else:
+        return False
+
+
+def ArPing():
+    if SerPing():
+        return GeneralCheckSerErr()
+    return False
+
+def ArHalt():
+    if SerPing():
+        return GeneralCheckSerErr()
+    return False
+
+def ArImpostaTipoSensore(tipo):
+    global Ser_TipoSensore
+
+    try:
+        tipo = int(tipo)
+    except:
+        return False
+    if tipo <0:
+        return False
+    if SerImpostaTipoSensori(tipo):
+        if GeneralCheckSerErr():
+            Ser_TipoSensore = tipo
+            return True
+        else:
+            return False
+    else:
+        return False
+
+def ArImpostaSensori(sensori):
+    if not(type(sensori) == type([])):
+        if (type(sensori)==type("stringa")):
+            tmp = []
+            for i in range(3):
+                if str(i) in sensori:
+                    tmp.append(True)
+                else:
+                    tmp.append(False)
+            sensori = tmp
+        else:
+            return False
+    if SerImpostaSensori(sensori):
+        return GeneralCheckSerErr()
+    else:
+        return False
+
+def ArPreparaSensori():
+    if SerPreparaSensori():
+        return GeneralCheckSerErr()
+    return False
+
+def ArRilasciaSensori():
+    if SerRilasciaSensori():
+        return GeneralCheckSerErr()
+    return False
+
+def ArImpostaTimeOut(tempo):
+    global Ser_To
+
+    try:
+        tempo = int(tempo)
+    except:
+        return False
+    if SerImpostaTipoTimeOut(tempo):
+        if(GeneralCheckSerErr()):
+            Ser_To = tempo
+            return True
+    return False
+
+def ArImpostaTimeCheck(tempo):
+    global Ser_Tc
+
+    try:
+        tempo = int(tempo)
+    except:
+        return False
+    if SerImpostaTipoTimeCheck(tempo):
+        if(GeneralCheckSerErr()):
+            Ser_To = tempo
+            return True
+    return False
+
+
 class Welcome(Screen):
     inFunz=0
     def PreRace(self, *args):
