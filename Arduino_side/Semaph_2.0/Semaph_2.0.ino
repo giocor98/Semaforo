@@ -32,9 +32,9 @@ bool (*SensorsCheckArray[MAX_TIPO_SENSORE+1]) ();
 bool (*SensorsDetectArray[MAX_TIPO_SENSORE+1]) ();
 
 //Variabile con il numero di millisecondi che deve durare la lettura dei sensori prima di andare in TimeOut
-int To;
+unsigned int To;
 //Variabile che contiene ilnumero di millisecondi che deve durare il  check dei sensori
-int Tc;
+unsigned int Tc;
 
 //Variabile indicante l'istante dal quale si inizia la misurazione
 unsigned long int TI;
@@ -69,6 +69,9 @@ bool SensorsDetect();
 void Semaforo();
 //Funzione che prepara il Semaforo (Spegne le luci)
 void SemStart();
+
+//Funzione che stampa il risultato del Detect
+bool PrintResult();
 
 //Funzione che inizializza gli array
 void InitArrays();
@@ -164,12 +167,17 @@ void SensorsResetCheckData(){
 //Funzione per il Check dei sensori
 //Precondizione: Deve essere stato inizializzato il vettore con le funzioni dei vari sensori
 //                TipoSensore deve avere senso
+//               Deve essere impostato il To
+//                Deve essere impostato il TI
 bool SensorsDetect(){
   if((TipoSensore<0)||(TipoSensore>MAX_TIPO_SENSORE)){
     return false;
   }
+  if((To<=0)||(TI<=0)){
+    return false;
+  }
   if(SensorsDetectArray[TipoSensore]()){
-    return true;
+    return PrintResult();
   }else{
     return false;
   }
@@ -178,14 +186,19 @@ bool SensorsDetect(){
 //Funzione per detectare i sensori
 //Precondizione: Deve essere stato inizializzato il vettore con le funzioni dei vari sensori
 //                TipoSensore deve avere senso
+//               Deve essere stato impostato il Tc
 bool SensorsCheck(){
   if((TipoSensore<0)||(TipoSensore>MAX_TIPO_SENSORE)){
+    return false;
+  }  
+  if(Tc <= 0){
     return false;
   }
   if(SensorsCheckArray[TipoSensore]()){
     return true;
   }else{
     SensorsResetCheckData();
+    Serial.println("S");
     return false;
   }
 }
@@ -270,7 +283,7 @@ void HandleMessage(){
     i=1;
     while (buff[i] != 0){
       int x = buff[i] - '0';
-      if ((x>0)&&(x<3)){
+      if ((x>=0)&&(x<3)){
         PistaSel[x] = true;
       }
       i++;
@@ -325,12 +338,12 @@ void HandleMessage(){
       buff[i]-='0';
       //Se è una cifra va avanti a leggere
       if ((buff[i]<0)||(buff[i]>10)){
-        tmp*=10;
-        tmp += buff[i];
-      }else{
         //Se non è una cirfa va in errore
         Serial.println("E");
         return;
+      }else{
+        tmp*=10;
+        tmp += buff[i];
       }
     }
     //Se ha letto 0
@@ -392,6 +405,8 @@ void HandleMessage(){
       return;
     }
 
+    //Mando un segnale di ack per indicare l'avvenuta ricezione del messaggio
+    Serial.println("A");
     //Detecto i sensori
     if(!SensorsDetect()){
       //Se non va a buon fine vado in errore
@@ -482,7 +497,7 @@ void Semaforo(){
   //Eseguo il check dei sensori per 1 secondo
   if(!SensorsCheck()){
     //Se occorre un errore vado in errore
-    Serial.println("E");
+    Serial.println("EC");
     //Spengo le luci
     SemStart();
     //Reimposto Tc
@@ -510,7 +525,7 @@ void Semaforo(){
   //Eseguo il check dei sensori per 1 secondo
   if(!SensorsCheck()){
     //Se occorre un errore vado in errore
-    Serial.println("E");
+    Serial.println("EC");
     //Spengo le luci
     SemStart();
     //Reimposto Tc
@@ -531,6 +546,31 @@ void Semaforo(){
 
   //Chiamo la funzione di detect
   SensorsDetect();
+}
+
+//Funzione che stampa il risultato del Detect
+//Precondizione: L'array TF dev'essere stato riempito co dati validi
+//               TI dev'essere stato inizializzato
+bool PrintResult(){
+  //Se TI non è stato inizializzato vai in errore 
+  if( TI == 0){
+    return false;
+  }
+  //Inizia la trasmissione
+  Serial.println("D");
+  //Scrive il risultato di ogni pista
+  for(int i=0; i<3; i++){
+    Serial.print(i);
+    Serial.print(" : ");
+    if(TF[i] == 0){
+      //Se la pista è andata in timeout scrive To
+      Serial.println("To");
+    }else{
+      //Altrimenti scrive la differenza di tempo tra il via e il momento in cui è scattato il sensore
+      Serial.println(TF[i] - TI);
+    }
+  }
+  return true;
 }
 
 /*******************************************************
@@ -643,7 +683,7 @@ bool Default_Prepara(){
 //Funzione per il Check dei sensori
 bool Default_Check(){
   //Dichiarazione variabili utilizzate
-  unsigned int n_cicli = 0;
+  unsigned long int n_cicli = 0;
   unsigned long int sum[3];
   unsigned long int T_f = millis() + Tc;
   int i, j, tmp;
@@ -693,6 +733,7 @@ bool Default_Check(){
         }
         Max[i] = (t_max[i] + Av[i] + soglia)/2;
         Min[i] = (t_min[i] + Av[i] - soglia)/2;
+        
       }else{
         sum[i] = sum[i] / n_cicli;
         if((sum[i] > Max[i])||(sum[i] < Min[i])){
@@ -700,9 +741,9 @@ bool Default_Check(){
         }
         Max[i] = (t_max[i] + Max[i] + soglia/2)/2;
         Min[i] = (t_min[i] + Min[i] - soglia/2)/2;
-        Av[i] = (Av[i] + sum[i]/n_cicli)/2;
+        Av[i] = (Av[i] + sum[i])/2;
 
-        if((Av[i]+soglia > Max[i])||(Av[i]-soglia<Min[i])){
+        if((Av[i]+soglia < Max[i])||(Av[i]-soglia > Min[i])){
           return false;
         }
       }
