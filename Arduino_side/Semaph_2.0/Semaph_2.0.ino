@@ -207,10 +207,10 @@ bool SensorsCheck(){
 void loop() {
   //Sec'è qualche messaggio chiama l'handler
   if(Serial.available()){
-    delay(5);
+    delay(1);
     HandleMessage();
   }
-  delay(5);
+  delay(1);
 }
 
 //Funzione chiamata quando un messaggio è disponibile
@@ -417,6 +417,7 @@ void HandleMessage(){
       return;
     }
   }else if (buff[0] == 'S'){
+    Serial.println("A");
     //Chiamo la funzione Semaforo
     Semaforo();
   }else if (buff[0] == 'H'){

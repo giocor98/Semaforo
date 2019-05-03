@@ -41,15 +41,21 @@ LastGiro = 3
 
 #funzioni per l'Arduino
 
-SerOccupata = False         #Variabile che indica se la Seriale è o meno occupata
+SerOccupata = False             #Variabile che indica se la Seriale è o meno occupata
 
-Tipo_Sensore = 0            #Indice del tipo di sensore in utilizzo sull arduino
+Tipo_Sensore = 0                #Indice del tipo di sensore in utilizzo sull arduino
 
-Ser_To = 0                  #Variabile con il timeout della lettura dei sensori
+Ser_To = 10000                  #Variabile con il timeout della lettura dei sensori
 
-Ser_Tc = 1000               #Variabile con il tempo del check
+Ser_Tc = 1000                   #Variabile con il tempo del check
 
-Sensori_Accesi = False      #Indica se i sensori sono o meno accesi
+Sensori_Accesi = False          #Indica se i sensori sono o meno accesi
+
+Check_In_Lap_Settings = True    #Variabile di supporto per CheckDuringLaps
+
+Long_Ser = False                #Variabile che impedisce la lettura della seriale per operazioni lunghe
+
+Wait_Between_Laps = 2
 
 #funzione che apre öa seriale
 def OpenSer():
@@ -104,17 +110,21 @@ def CheckSer():
 #Funzione che scrive sulla Seriale
 #In: Messaggio da scrivere sulla Seriale
 #out: True if Ack recived, False else
-def SerScrivi(PS):
+def SerScrivi(PS, d = 10, n = 0):
     global SerOccupata
     global ser
     if SerOccupata:
         if not(PS[-1] == '\n'):
             PS = PS + "\n"
         try:
-            CheckSer()
+            print("Ser write")
+            print(PS)
             ser.write(PS.encode())
-            return SerSimpleCheck(10)
+            return SerSimpleCheck(d)
         except:
+            if n == 0:
+                CheckSer()
+                return SerScrivi(PS, 1)
             return False
     else:
         return False
@@ -132,21 +142,51 @@ def SerFlush():
 #Funzione che esegue un check rapido per controllare se Arduino ha scritto A oppure E
 def SerSimpleCheck(l):
     global ser
+    print("SerChekc")
 
     for t in range (l):
         if ser.in_waiting:
-            sleep(.05)
+            print(t * 0.0025)
+            sleep(.004)
             while ser.in_waiting:
                 c = ser.read()
                 c = c.decode()
                 if(c == 'A'):
-                    SerFlush()
+                    print("A")
+                    #SerFlush()
                     return True
                 elif (c == 'E'):
-                    SerFlush()
+                    print("E")
+                    #SerFlush()
                     return False
-        sleep(.05)
+        sleep(.0025)
+    print("To")
     return False
+
+#Funzione che legge (se presente) 1 carattere dalla seriale
+def SimpleSerRead():
+    global ser
+    global SerOccupata
+    global Long_Ser
+
+    if Long_Ser:
+        return 0
+    if SerOccupata:
+        try:
+            if ser.in_waiting:
+                sleep(.005)
+                while ser.in_waiting:
+                    c = ser.read()
+                    c = c.decode()
+                    if not((c == ' ')or(c=='\n')or (c=='\r')):
+                        return c
+            return 0
+        except:
+            ErrorDesc = "Non riesco a leggere la seriale"
+            print("Non riesco ad aprire la seriale")
+            return -1
+    else:
+        return 0
 
 #Funzione per prenotare la Seriale
 #ritorna true se la seriale era libera e ora è stata occupata dal richiedente, falso altrimenti
@@ -166,9 +206,9 @@ def LeaveSer():
 #funzione per gestire i messaggi piu semplici della seriale.
 #Prende in ingresso il messaggio da mandare
 #restituisce 1 se manda il messaggio con successo, 0 se la Seriale è occupata, -1 se avviene un errore
-def EasySerMsg(msg):
+def EasySerMsg(msg, d = 10):
     if GetSer():
-        if SerScrivi(msg):
+        if SerScrivi(msg, d):
             r = 1
         else:
             r = -1
@@ -198,9 +238,14 @@ def SerRilasciaSensori():
     return r
 
 #funzione che implementa la funnzione di Halt
-def SerHalt():
+def SerHalt(l):
     global Sensori_Accesi
-    r = EasySerMsg("H\n")
+    global Long_Ser
+
+    Long_Ser = False
+    LeaveSer()
+
+    r = EasySerMsg("H\n", l)
     if(r == 1):
         Sensori_Accesi = False
     return r
@@ -236,6 +281,7 @@ def SerImpostaSensori(sensori):
         #L'input era errato
         return -1
     else:
+        print(msg)
         msg = msg + "\n"
         return EasySerMsg(msg)
 
@@ -278,11 +324,47 @@ def LongSerMsg(msg):
     else:
         return 0
 
+def SerDetect():
+    return LongSerMsg("D\n")
+
+#Funzione per comunnicare le innformazioni essenziali che devono essere passate all'Arduino al  suo avvio
+def InitSer():
+    global Ser_To
+    global Ser_Tc
+    global Tipo_Sensore
+    global ErrorDesc
+
+    lE = ""
+    if not (SerImpostaTimeOut(Ser_To)==1):
+        Ser_To = 0
+        lE = lE + "Non riesco a impostare il Timeout\n"
+    if not(SerImpostaTimeCheck(Ser_Tc)==1):
+        Ser_Tc = 0
+        lE = lE + "Non riesco a impostare il TimeCheck\n"
+    if not(SerImpostaTipoSensori(Tipo_Sensore)==1):
+        Tipo_Sensore = 0
+        lE = lE + "Non riesco a impostare il Tipo di sensore\n"
+    if lE == "":
+        return True
+    else:
+        return False
+
 #Funzione per testare la calibrazione dei sensori
-def TryCheck():
+def TryCheck(sensori = [1,1,1], fast = False):
     global Ser_Tc
     global Sensori_Accesi
     prec = Sensori_Accesi
+
+    if (prec == False):
+        if (fast):
+            print("TryCheck chiamato con sensori non pronti")
+            return -1
+        r = SerPreparaSensori()
+        if not(r==1):
+            SerRilasciaSensori()
+            return r
+        sleep(.75)
+
     r = SerImpostaSensori([1,1,1])
     if not (r == 1):
         if not(prec):
@@ -296,7 +378,7 @@ def TryCheck():
     r = LongSerMsg("C\n")
     if r == 1:
         sleep(Ser_Tc/1000)
-        if SerSimpleCheck(10):
+        if SerSimpleCheck(20):
             LeaveSer()
             if not(prec):
                 SerRilasciaSensori()
@@ -310,6 +392,103 @@ def TryCheck():
         if not(prec):
             SerRilasciaSensori()
         return r
+
+def PreSem(piste, PassedTo = 0):
+    global Ser_To
+    global ErrorDesc
+    global SerOccupata
+
+    if not(SerOccupata):
+        SerFlush()
+
+    try:
+        PassedTo = int(PassedTo)
+    except:
+        ErrorDesc = "Semaph: il parametro di timeout non è un intero"
+
+    if ((PassedTo <= 0) and(Ser_To <=0)):
+        ErrorDesc = "Semaph: TimeOut non impostato"
+        return -1
+    if PassedTo>0:
+        r = SerImpostaTimeOut(PassedTo)
+        if not (r==1):
+            ErrorDesc = "Semaph: Non riesco a impostare il tempo di Timeout"
+            return -1
+
+    r = SerImpostaSensori(piste)
+    if not (r==1):
+        ErrorDesc="Semaph: Non riesco a selezionare le piste"
+        return -1
+    r = SerPreparaSensori()
+    if not (r==1):
+        ErrorDesc="Semaph: Non riesco a accendere i sensori"
+        return -1
+    r = LongSerMsg("S\n")
+    if(r == 1):
+        for i in range(20):
+            sleep(.05)
+            c = SimpleSerRead()
+            if not((c == 0) or (c == 'B')):
+                LeaveSer()
+                if (c==-1):
+                    return-1
+                print("Errore nella preparazione del semaforo")
+                ErrorDesc= "Semaph: Errore nella preparazione del semaforo"
+                return -1
+            elif (c == 'B'):
+                return 1
+        LeaveSer()
+        print("Errore nella preparazione del semaforo: non ho letto risposta")
+        ErrorDesc= "Semaph: Errore nella preparazione del semaforo"
+        return -1
+    else:
+        print("Errore nella preparazione del semaforo: Seriale occupata o non ha riscontrato messaggio")
+        ErrorDesc= "Semaph: Errore nella preparazione del semaforo"
+        return -1
+
+def SerReadDetect():
+    global ser
+
+    try:
+        ser.in_waiting
+    except:
+        return False
+    print("Leggo i tempi")
+    sleep(.02)
+    str0 = ser.readline()
+    str1 = ser.readline()
+    str2 = ser.readline()
+    if (ser.in_waiting):
+        if not (str0.decode()[0] == '0'):
+            str0 = str1
+            str1 = str2
+            str2 = ser.readline()
+
+    str0 = str0.decode()
+    str1 = str1.decode()
+    str2 = str2.decode()
+
+    val = []
+
+    if (' : ' in str0):
+        val.append(str0[str0.index(' : ') + 3:])
+    if (' : ' in str1):
+        val.append(str1[str1.index(' : ') + 3:])
+    if (' : ' in str2):
+        val.append(str2[str2.index(' : ') + 3:])
+
+    for i in range(3):
+        val[i] = val[i].replace('\n', '')
+        val[i] = val[i].replace('\r', '')
+        if ('To' in val[i]):
+            val[i] = 0
+        else:
+            try:
+                val[i] = int(val[i])
+            except:
+                val[i] = 0
+    print(val)
+    return val
 
 class Welcome(Screen):
     inFunz=0
@@ -325,7 +504,10 @@ class Welcome(Screen):
         if CheckSer() == 0:
             self.parent.new_Error_screen()
         else:
-            self.parent.current = "Impostazioni"
+            if (InitSer()):
+                self.parent.current = "Impostazioni"
+            else:
+                self.parent.new_Error_screen()
 
 class Error(Screen):
     def ErrCode(self, *args):
@@ -404,12 +586,9 @@ class Race(Screen):
         global ser
         global STo
         global nGiri
-        try:
-            pippo = ser.in_waiting
-        except:
-            print("Errore nella comunicazione con la Seriale")
-            ErrorDesc = "Non riesco a connettermi con Arduino"
-            ser = 0
+
+        r = SimpleSerRead()
+        if (r == -1):
             Clock.unschedule(self.Counter)
             self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
             self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
@@ -417,73 +596,41 @@ class Race(Screen):
             self.ids.stop_button.color = (1, 0, 0, 1)
             self.ids.settings_button.color= (0, 1, 0, 1)
             self.ids.start_button.color = (0, 1, 0, 1)
-            self.parent.new_Error_screen()
+            self.RaiseError(ErrorDesc)
+            LeaveSer()
             return
-        if (pippo>0):
-            c = ser.read()
-            if(c==b'R'):
-                T = -200
-                self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
-            elif(c == b'Y'):
-                T = -100
-                self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
-                self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
-            elif(c == b'G'):
-                self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
-                self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
-                self.ids.Green_Light.bgcolor = (0, 1, 0, 1)
-                self.ids.stop_button.color = (0, 1, 0, 1)
-                T = 0
-            elif(c == b'E'):
-                self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
-                self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
-                self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
-                print("Errore da parte di Arduino")
-                Clock.unschedule(self.Counter)
-                self.ids.stop_button.color = (1, 0, 0, 1)
-                self.ids.settings_button.color= (0, 1, 0, 1)
-                self.ids.start_button.color = (0, 1, 0, 1)
-                ErrorDesc = "Errore sui sensori"
-                self.parent.new_Error_screen()
-            elif (c == b'D'):
-                print("Arrivati tempi")
-                sleep(.02)
-                str0 = ser.readline()
-                str1 = ser.readline()
-                str2 = ser.readline()
-                if (ser.in_waiting):
-                    if not (str0.decode()[0] == '0'):
-                        str0 = str1
-                        str1 = str2
-                        str2 = ser.readline()
-
-                str0 = str0.decode()
-                str1 = str1.decode()
-                str2 = str2.decode()
-
-                val = []
-
-                if (' : ' in str0):
-                    val.append(str0[str0.index(' : ') + 3:])
-                if (' : ' in str1):
-                    val.append(str1[str1.index(' : ') + 3:])
-                if (' : ' in str2):
-                    val.append(str2[str2.index(' : ') + 3:])
-
-                for i in range(3):
-                    val[i] = val[i].replace('\n', '')
-                    val[i] = val[i].replace('\r', '')
-                    if ('To' in val[i]):
-                        val[i] = 0
-                    else:
-                        try:
-                            val[i] = int(val[i])
-                        except:
-                            val[i] = 0
+        elif (r == 'R'):
+            T = -200
+            self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
+        elif (r=='Y'):
+            T = -100
+            self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
+            self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+        elif(r=='G'):
+            self.ids.Red_Light.bgcolor = (1, 0, 0, 1)
+            self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.Green_Light.bgcolor = (0, 1, 0, 1)
+            self.ids.stop_button.color = (0, 1, 0, 1)
+            T = 0
+        elif (r=='E'):
+            self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+            self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
+            print("Errore da parte di Arduino")
+            Clock.unschedule(self.Counter)
+            self.ids.stop_button.color = (1, 0, 0, 1)
+            self.ids.settings_button.color= (0, 1, 0, 1)
+            self.ids.start_button.color = (0, 1, 0, 1)
+            ErrorDesc = "Errore sui sensori"
+            self.RaiseError(ErrorDesc)
+            LeaveSer()
+            return
+        elif (r=='D'):
+            LeaveSer()
+            val = SerReadDetect()
+            if not (val ==False):
                 self.CalcolaTempi(val, nGiri)
-                nGiri = nGiri +1
-
-                print(val)
+                nGiri = nGiri + 1
 
         T = T+5
         if (T>=0):
@@ -503,13 +650,15 @@ class Race(Screen):
                     self.ids.stop_button.color = (1, 0, 0, 1)
                     self.ids.settings_button.color= (0, 1, 0, 1)
                     self.ids.start_button.color = (1, 0, 0, 1)
-                    self.parent.new_Error_screen()
+                    self.RaiseError(ErrorDesc)
 
             self.ids.timer.text = '-' + self.ids.timer.text
 
     def CalcolaTempi(self, val, giro):
         global tipoPista
         global LastGiro
+        global Wait_Between_Laps
+
         if giro == 0:
             self.MacchinaInPista = [1, 2, 3]
             for i in range(3):
@@ -520,31 +669,104 @@ class Race(Screen):
                         self.IP2 = True
                     elif i == 2:
                         self.IP3 = True
-                    self.TempoStart[i] = val[i]
+                self.TempoStart[i] = val[i]
         else:
             for i in range(3):
-                print(self.MacchinaInPista)
-                print(i)
-                if val[self.MacchinaInPista[i]-1] == 0:
-                    if i==0:
+                Nm = self.MacchinaInPista[i] -1
+                if val[i] == 0:
+                    print(Nm)
+                    if Nm == 0:
                         self.IP1 = False
-                    elif i == 1:
+                    elif Nm == 1:
                         self.IP2 = False
-                    elif i == 2:
+                    elif Nm == 2:
                         self.IP3 = False
-                elif (not(((i==0)and(self.IP1 == False))or((i==1)and(self.IP2 == False)) or((i==2)and(self.IP3==False)))):
-                    self.TempoPiste[i + 3*(giro-1)] = str(val[self.MacchinaInPista[i]-1]-self.TempoStart[i])
+                elif (not(((Nm==0)and(self.IP1 == False))or((Nm==1)and(self.IP2 == False)) or((Nm==2)and(self.IP3==False)))):
+                    self.TempoPiste[Nm + 3*(giro-1)] = str(val[i]-self.TempoStart[Nm])
         for i in range(3):
             self.MacchinaInPista[i] = self.MacchinaInPista[i] + tipoPista
             if(self.MacchinaInPista[i] >3):
                 self.MacchinaInPista[i] = 1
             elif (self.MacchinaInPista[i] <1):
                 self.MacchinaInPista[i] = 3
+        print("Macchina in pista")
+        print(self.MacchinaInPista)
         if giro == LastGiro:
             print("Fine Gara")
             self.Stop()
+        else:
+            print("NotFinished")
+            Clock.schedule_once(self.CalcolaPiste, Wait_Between_Laps)
 
+    def CalcolaPiste(self, *args):
+        global ErrorDesc
+        global Check_In_Lap_Settings
+        global Long_Ser
 
+        sens = [0, 0, 0]
+
+        if ((self.CM1)and(self.IP1)):
+            for i in range(3):
+                if self.MacchinaInPista[i] == 1:
+                    sens[i] = 1
+        if ((self.CM2)and(self.IP2)):
+            for i in range(3):
+                if self.MacchinaInPista[i] == 2:
+                    sens[i] = 1
+        if ((self.CM3)and(self.IP3)):
+            for i in range(3):
+                if self.MacchinaInPista[i] == 3:
+                    sens[i] = 1
+
+        print(sens)
+
+        if not(SerImpostaSensori(sens)==1):
+            ErrorDesc= "Non riesco a impostare i sensori"
+            self.RaiseError(ErrorDesc)
+            Clock.unschedule(self.Counter)
+            return
+        if Check_In_Lap_Settings:
+            print("Checkinthislap")
+            r = LongSerMsg("C\n")
+            if (r == 0):
+                ErrorDesc= "Non riesco a ricalibrare i sensori"
+                self.RaiseError(ErrorDesc)
+                Clock.unschedule(self.Counter)
+                return
+            elif (r == -1):
+                ErrorDesc= "I sensori non si ricalibrano"
+                self.RaiseError(ErrorDesc)
+                Clock.unschedule(self.Counter)
+                return
+            else:
+                Long_Ser = True
+                Clock.schedule_once(self.CheckInLaps, Ser_Tc/1000)
+        else:
+            print("notCheckinthislap")
+            Long_Ser = True
+            self.CheckInLaps()
+        return
+
+    def CheckInLaps(self, *args):
+        global ErrorDesc
+        global Check_In_Lap_Settings
+        global Long_Ser
+        print("CIL")
+        if (Check_In_Lap_Settings):
+            if not (SerSimpleCheck(30)):
+                LeaveSer()
+                ErrorDesc= "Non riesco a leggere i sensori"
+                self.RaiseError(ErrorDesc)
+                Clock.unschedule(self.Counter)
+                Long_Ser = False
+                return
+            Long_Ser = False
+            LeaveSer()
+        Long_Ser = False
+        if not(SerDetect()==1):
+            ErrorDesc= "Non riesco a far ripartire i sensori"
+            self.RaiseError(ErrorDesc)
+            Clock.unschedule(self.Counter)
 
 
     def Start(self, *args):
@@ -562,30 +784,25 @@ class Race(Screen):
         if CheckSer() == 0:
             print("Errore nell'apertura della seriale con lo start")
             ErrorDesc = "Non riesco ad aprire la seriale con lo start"
-            self.parent.new_Error_screen()
+            self.RaiseError(ErrorDesc)
             return
-        while (ser.in_waiting >0):
-            ser.read()
 
-        #comunuco quali sono le piste da controllare:
-        cmd_to_send = "s"
+        #Seleziono le piste da ontrollare
+        sens = [0, 0, 0]
 
         if (self.CM1):
-            cmd_to_send = cmd_to_send + "0"
+            sens[0] = 1
         if (self.CM2):
-            cmd_to_send = cmd_to_send + "1"
+            sens[1] = 1
         if (self.CM3):
-            cmd_to_send = cmd_to_send + "2"
+            sens[2] = 1
 
         #Controlla che sia selezionata almeno una pista
-        if (cmd_to_send == "s"):
+        if (sens == [0, 0, 0]):
             ErrorDesc = "Non hai selezionato alcuna pista"
-            self.parent.new_Error_screen()
+            self.RaiseError(ErrorDesc)
             return
-        cmd_to_send = cmd_to_send + "\n"
-        ser.write(cmd_to_send.encode())
 
-        ser.write("S\n".encode())
         T = -300
         self.ids.stop_button.color = (.5, .5, 0, 1)
         self.ids.settings_button.color= (1, 0, 0, 1)
@@ -593,11 +810,17 @@ class Race(Screen):
         self.ids.Red_Light.bgcolor = (0, 0, 0, .9)
         self.ids.Yellow_Light.bgcolor = (0, 0, 0, .9)
         self.ids.Green_Light.bgcolor = (0, 0, 0, .9)
-        sleep(.2)
-        if(not(ser.read()==b'B')):
+        r = PreSem(sens)
+        if not (r == 1):
             self.ids.stop_button.color = (1, 0, 0, 1)
             self.ids.settings_button.color= (.3, .7, 0, 1)
             self.ids.start_button.color = (0, 1, 0, 1)
+            if (r == -1):
+                self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
+                self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+                self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
+                self.RaiseError(ErrorDesc)
+                return
         else:
             Clock.schedule_interval(self.Counter, 0.05)
             STo = 0
@@ -625,43 +848,35 @@ class Race(Screen):
     def Stop(self, *args):
         global T
         Clock.unschedule(self.Counter)
-        ser.write("H\n".encode())
-        self.ids.stop_button.color = (1, 0, 0, 1)
+        Clock.unschedule(self.CalcolaPiste)
+        Clock.unschedule(self.CheckInLaps)
+        if (SerHalt(10000) == 1):
+            self.ids.start_button.color = (0, 1, 0, 1)
+            self.ids.stop_button.color = (1, 0, 0, 1)
+        else:
+            self.ids.start_button.color = (1, 0, 0, 1)
+            self.ids.stop_button.color = (0, 1, 0, 1)
         self.ids.settings_button.color= (0, 1, 0, 1)
-        self.ids.start_button.color = (1, 0, 0, 1)
-        Clock.schedule_interval(self.Check_halt, 0.1)
+
         T = 10
 
-
-    def Check_halt(self, *args):
-        global ser
-        global T
-        global To
+    def RaiseError(self,codiceErrore):
         global ErrorDesc
-        try:
-            pippo = ser.in_waiting
-        except:
-            print("Errore nella comunicazione con la Seriale")
-            ErrorDesc = "Non riesco a connettermi con Arduino per terminare il controllo"
-            Clock.unschedule(self.Check_halt)
-            self.parent.new_Error_screen()
-            return
-        if pippo>0:
-            if ser.read() == 'A'.encode():
-                print("Arduino has stopped")
-                self.ids.start_button.color = (0, 1, 0, 1)
-                Clock.unschedule(self.Check_halt)
-                while ser.in_waiting:
-                    ser.read()
-                return
-        T = T +1
-        if( T >=To*15):
-            print("Arduino ci impiega troppo a rispondere")
-            ErrorDesc = "Errore: Arduino non si ferma seppur sia scattato il timeout"
-            Clock.unschedule(self.Check_halt)
-            self.parent.new_Error_screen()
-            return
-    pass
+
+        print ("Errore dalla schermata Race")
+        print(codiceErrore)
+        ErrorDesc = codiceErrore
+        Clock.unschedule(self.Counter)
+        Clock.unschedule(self.CalcolaPiste)
+        Clock.unschedule(self.CheckInLaps)
+        self.ids.settings_button.color= (0, 1, 0, 1)
+
+        self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
+        self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
+        self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
+
+        self.parent.new_Error_screen()
+
 
 class Impostazioni(Screen):
 
