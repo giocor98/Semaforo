@@ -8,6 +8,7 @@ MyScreenManager:
     Race:
     Impostazioni:
     WIP:
+    MoreOptions:
 
 <Welcome>:
     name: 'Welcome'
@@ -20,6 +21,13 @@ MyScreenManager:
                 size: self.size
                 source: './multimedia/sfondi/Welcome.jpg'
         Label:
+            canvas:
+                Color:
+                    rgba: .1, .4, .2, .3
+                Rectangle:
+                    pos: (self.width/2 - 150 , self.height*3/4)
+                    size : (300, self.font_size+10)
+
             text: 'Mini 4WD'
             color: 1, 0, 0, 1
             markup: True
@@ -28,13 +36,17 @@ MyScreenManager:
             height: root.height*3/4
         BoxLayout:
             Button:
+                background_color: .2, .7, .4, .7
                 text: 'Gara!'
                 font_size: 40
                 on_release: root.PreRace()
+                border: 25, 15, 0, 0
             Button:
+                background_color: .2, .3, .4, .7
                 text: 'Impostazioni'
                 font_size: 40
-                on_release: app.root.current = 'WIP'
+                on_release: app.root.current = 'MoreOptions'
+                border: 25, 0, 0, 15
 
 <Error>:
     BoxLayout:
@@ -53,23 +65,36 @@ MyScreenManager:
             size_hint_y: None
             height: root.height/4
         Label:
+            canvas.before:
+                Color:
+                    rgba: .7, .2, .1, .8
+                RoundedRectangle:
+                    pos: (self.pos[0]+5, self.pos[1] + 5)
+                    size: (self.size[0]-10, self.size[1] -10)
+                    radius: [50, 50, 50, 50]
             text: root.ErrCode()
-            color: .7, .5, .3, 1
+            color: .2, .7, .3, 1
             markup: True
             font_size: 30
             size_hint_y: None
             height: root.height/2
         BoxLayout:
             Button:
+                border: 25, 15, 0, 0
+                background_color: .2, .7, .4, .7
                 text: 'Home'
                 font_size: 40
                 on_release: app.root.current = 'Welcome'
             Button:
+                border: 25, 0, 0, 15
+                background_color: .7, .2, .4, .7
                 text: 'Esci'
                 font_size: 40
                 on_release: quit()
         BoxLayout:
             Button:
+                border: 15, 0, 15, 0
+                background_color: .2, .7, .1, .7
                 text: 'Go To Race Anyway'
                 font_size: 40
                 on_release: app.root.current = 'Impostazioni'
@@ -87,11 +112,10 @@ MyScreenManager:
                 size: self.size
                 source: './multimedia/sfondi/Race.jpg'
         BoxLayout:
-            size_hint_y: None
-            size_y: 200
+            size_hint_y: .27
             Label:
                 id: TitoloCorsa
-                size_hint_y: .5
+                size_hint_y: 1
                 color: 1,0,0,1
                 font_size: 100
                 text: "Corsa"
@@ -99,65 +123,77 @@ MyScreenManager:
                 id: upper_table
                 orientation: 'vertical'
                 size_hint_x: 1
-                font_size: 38
-                size_y: 200
+                font_size: 35
+                size_y: 300
                 BoxLayout:
                     id: riga_1
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
+                                size: self.size
+                                pos: self.pos
+                                radius: [20, 0, 0, 0]
                         id: macchina_1
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .2, .6, 1
                         text: root.F_Nome_1()
-                    Label:
-                        id: pista
-                        canvas:
-                            Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
-                                size: self.size
-                                pos: self.pos
+                    Button:
+                        id: Ch_Bottone_Macchina_1
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
-                        text: "pista_1"
+                        text: "Rimuovi" if (root.CM1) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM1) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM1 = not root.CM1
                 BoxLayout:
                     id: riga_2
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
+                                size: self.size
+                                pos: self.pos
+                                radius: [0, 0, 0, 0]
                         id: macchina_2
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
+                        color: .1, .2, .6, 1
                         text: root.F_Nome_2()
-                    Label:
-                        id: pista
-                        canvas:
-                            Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
-                                size: self.size
-                                pos: self.pos
+                    Button:
+                        id: Ch_Bottone_Macchina_2
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
-                        text: "pista_2"
+                        text: "Rimuovi" if (root.CM2) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM2) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM2 = not root.CM2
                 BoxLayout:
                     id: riga_3
-                    size_hint_y: .33
+                    size_hint_y: .3
                     Label:
-                        id: macchina_3
-                        font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
-                        text: root.F_Nome_3()
-                    Label:
-                        id: pista
-                        canvas:
+                        canvas.before:
                             Color:
-                                rgba: .5, .5, 0, .75
-                            Rectangle:
+                                rgba: .4, .4, .2, .6
+                            RoundedRectangle:
                                 size: self.size
                                 pos: self.pos
+                                radius: [0, 0, 0, 20]
+                        id: macchina_3
                         font_size: upper_table.font_size
-                        color: 0, 1, 0, 1
-                        text: "pista_3"
+                        color: .1, .2, .6, 1
+                        text: root.F_Nome_3()
+                    Button:
+                        id: Ch_Bottone_Macchina_3
+                        font_size: upper_table.font_size
+                        text: "Rimuovi" if (root.CM3) else "Aggiungi"
+                        disabled: root.ids.start_button.disabled
+                        background_color: (.85, .2, .2, .8) if (root.CM3) else (.2,  .8, .2, .8)
+                        color: .1, .1, .7, 1
+                        on_release: root.CM3 = not root.CM3
         BoxLayout:
             size_hint_y: .05
             size_hint_x: 1
@@ -173,9 +209,11 @@ MyScreenManager:
                     canvas.before:
                         Color:
                             rgba: 0, 0, 0, 1
-                        Rectangle:
-                            pos: self.pos
-                            size: self.size
+                        RoundedRectangle:
+                            pos: (self.pos [0] + self.size[0]/10, self.pos[1])
+                            size: (self.size[0]*4/5, self.size[1])
+                            radius: [10, 10, 10, 10]
+
                     color: 0, 1, .25, 1
                     #font: 100
                     text: "000:00"
@@ -184,72 +222,110 @@ MyScreenManager:
                     orientation: 'vertical'
                     font_size: 35
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius : 30, 30, 0, 0
                         Label:
+                            id: Table_Macchina_1
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_1.text
-                            color: macchina_1.color
+                            text: root.Last_Runners[0]
+                            color: (.1, .7, .2, 1) if (root.IP1) else (.7, .1, .2, 1)
                         Label:
+                            id: Table_Macchina_2
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_2.text
-                            color: macchina_2.color
+                            text: root.Last_Runners[1]
+                            color: (.1, .7, .2, 1) if (root.IP2) else (.7, .1, .2, 1)
                         Label:
+                            id: Table_Macchina_3
                             size_hint_x: .33
                             size_hint_y:1
                             font_size: time_table.font_size
-                            text: macchina_3.text
-                            color: macchina_2.color
+                            text: root.Last_Runners[2]
+                            color: (.1, .7, .2, 1) if (root.IP3) else (.7, .1, .2, 1)
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                         Label:
+                            id: tempo11
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[0] if (not(root.Last_Runners[0] == "")) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo21
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[1] if (not(root.Last_Runners[1] == "")) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo31
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[2] if (not(root.Last_Runners[2] == "")) else ""
+                            color: Table_Macchina_3.color
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            Rectangle:
+                                pos: self.pos
+                                size: self.size
                         Label:
+                            id: tempo12
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[3] if (not(root.Last_Runners[0] == "")) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo22
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[4] if (not(root.Last_Runners[1] == "")) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo32
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[5] if (not(root.Last_Runners[2] == "")) else ""
+                            color: Table_Macchina_3.color
                     BoxLayout:
+                        canvas.before:
+                            Color:
+                                rgba: 0, 0, 0, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius : 0, 0, 30, 30
                         Label:
+                            id: tempo13
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_1.color
+                            text: root.TempoPiste[6] if (not(root.Last_Runners[0] == "")) else ""
+                            color: Table_Macchina_1.color
                         Label:
+                            id: tempo23
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_2.color
+                            text: root.TempoPiste[7] if (not(root.Last_Runners[1] == "")) else ""
+                            color: Table_Macchina_2.color
                         Label:
+                            id: tempo33
                             size_hint_x: .33
                             font_size: time_table.font_size
-                            text: "No Time"
-                            color: macchina_3.color
+                            text: root.TempoPiste[8] if (not(root.Last_Runners[2] == "")) else ""
+                            color: Table_Macchina_3.color
                 BoxLayout:
                     size_hint_y: .5
             BoxLayout:
@@ -261,9 +337,11 @@ MyScreenManager:
                         canvas:
                             Color:
                                 rgba: 0, 0, 0, .9
-                            Rectangle:
+                            RoundedRectangle:
                                 pos: self.pos
                                 size: self.size
+                                radius: [30, 20, 20, 30]
+
                         BoxLayout:
                             #size_hint_y:1
                             id: Red_Light
@@ -300,7 +378,8 @@ MyScreenManager:
                         Button:
                             id: start_button
                             font_size: Button_Box.font_size
-                            background_color: .3, .9, .3, 1
+                            background_color: .3, .9, .2, .9
+                            border: 15, 15,0, 0
                             color: 0, 1, 0, 1
                             disabled: True if ((start_button.color[0] == 1)or(start_button.color[2] == .1)) else False
                             on_release: root.Start()
@@ -308,7 +387,8 @@ MyScreenManager:
                         Button:
                             id: stop_button
                             font_size: Button_Box.font_size
-                            background_color: 1, 0, 0 , 1
+                            background_color: 1, .1, .1 , .9
+                            border: 15, 0, 0, 15
                             color: 1, 0, 0, 1
                             disabled: False if (stop_button.color[0] == 0) else True
                             on_release: root.Stop()
@@ -316,6 +396,7 @@ MyScreenManager:
                     Button:
                         id: settings_button
                         font_size: Button_Box.font_size
+                        border: 0, 15, 15, 0
                         color: 0, 1, 0, 1
                         disabled: True if (settings_button.color[0] == 1) else False
                         background_color: .3, .3, .9, 1
@@ -344,6 +425,13 @@ MyScreenManager:
                 BoxLayout:
                     size_y: 50
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .6, .6, .3, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [50, 50, 50, 50]
                         size_hint_y: 1
                         font_size: 30
                         color: .5, 0, 1, 1
@@ -359,6 +447,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_C
                         background_color: (0, 1, 0, .75)
+                        border: 25, 10, 0, 0
                         size_hint_y: 1
                         size_hint_x: .6
                         font_size: 30
@@ -367,6 +456,14 @@ MyScreenManager:
                 BoxLayout:
                     size_y: 50
                     Label:
+                        canvas.before:
+                            Color:
+                                rgba: .6, .6, .3, .75
+                            RoundedRectangle:
+                                pos: self.pos
+                                size: self.size
+                                radius: [50, 50, 50, 50]
+
                         size_hint_y: 1
                         font_size: 30
                         color: .5, 0, 1, 1
@@ -383,6 +480,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N1
                         background_color: (0, 1, 0, .75)
+                        border: 25, 10, 0, 0
                         size_hint_y: 1
                         size_hint_x: .25
                         font_size: 30
@@ -390,6 +488,7 @@ MyScreenManager:
                         on_release: root.Save_N1()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 25, 0, 0, 10
                         disabled: True if (Button_Save_N1.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -408,6 +507,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N2
                         background_color: (0, 1, 0, .75)
+                        border: 0, 10, 0, 0
                         size_hint_y: 1
                         font_size: 30
                         size_hint_x: .25
@@ -415,6 +515,7 @@ MyScreenManager:
                         on_release: root.Save_N2()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 0, 0, 0, 10
                         disabled: True if (Button_Save_N2.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -433,6 +534,7 @@ MyScreenManager:
                     Button:
                         id: Button_Save_N3
                         background_color: (0, 1, 0, .75)
+                        border: 0, 10, 25, 0
                         size_hint_y: 1
                         font_size: 30
                         size_hint_x: .25
@@ -440,6 +542,7 @@ MyScreenManager:
                         on_release: root.Save_N3()
                     Button:
                         background_color: (0, 0, 1, .75)
+                        border: 0, 0, 25, 10
                         disabled: True if (Button_Save_N3.background_color[1] == 1) else False
                         size_hint_y: 1
                         font_size: 30
@@ -447,6 +550,8 @@ MyScreenManager:
                         text: "Reset"
                         on_release: Input_N3.text = root.F_Nome_3()
                 Button:
+                    background_color: (.25, .8, .2, .75)
+                    border: 15, 10, 0, 0
                     size_hint_y: 1
                     font_size: 30
                     text: "Race"
@@ -456,11 +561,65 @@ MyScreenManager:
                 Label:
                     text: "campo vuoto"
                 Button:
-                    size_hint_y: .1
+                    background_color: (.9, .4, .1, .75) if (root.ValCheckSensori==0) else (.8, .25, .2, .75) if (root.ValCheckSensori<0) else (.25, .8, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
+                    yize_hint_x: .5
+                    font_size: 30
+                    text: "Controlla"
+                    on_release: root.ControllaSensori()
+                Button:
+                    background_color: (.25, .8, .2, .75) if root.SensoriAccesi else (.8, .25, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
+                    yize_hint_x: .5
+                    font_size: 30
+                    text: "Spegni" if root.SensoriAccesi else "Accendi"
+                    on_release: root.Accendi_Spegni_Sensori()
+                Button:
+                    background_color: (.8, .25, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
                     yize_hint_x: .5
                     font_size: 30
                     text: "Home"
                     on_release: app.root.current = 'Welcome'
+
+<MoreOptions>
+    name:'MoreOptions'
+    BoxLayout:
+        orientation: 'vertical'
+        canvas:
+            Rectangle:
+                pos: self.pos
+                size: self.size
+                source: './multimedia/sfondi/MoreOptions.jpg'
+        Label:
+            id: Titolo
+            size_hint_y: .1
+            font_size: 35
+            color: 1, 0, 0, 1
+            text: "More Options"
+        BoxLayout:
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    hint_size_y:None
+                    text : "Tc"
+                BoxLayout:
+                    TextInput:
+                        id: Tc_In
+                        hint_size_y : None
+                        text : root.GetTc()
+                        hint_size_x : .75
+                    Button:
+                        hint_size_y : None
+                        text: "Save"
+                        on_release: root.SaveTc()
+        Button:
+            size_hint_y: .2
+            text: 'Home'
+            on_release: app.root.current = 'Welcome'
 
 <WIP>
     name:'WIP'
@@ -477,7 +636,6 @@ MyScreenManager:
             size_hint_y: .2
             text: 'Home'
             on_release: app.root.current = 'Welcome'
-
 
 <SecondScreen>:
     name: 'second'
