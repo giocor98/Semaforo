@@ -4,7 +4,7 @@ from kivy.lang import Builder
 from kivy.properties import ListProperty
 from kivy.uix.boxlayout import BoxLayout
 
-from kivy.properties import BooleanProperty, StringProperty
+from kivy.properties import BooleanProperty, StringProperty, NumericProperty
 
 from kivy.clock import Clock
 
@@ -41,373 +41,275 @@ LastGiro = 3
 
 #funzioni per l'Arduino
 
-SerErr = False              #Variabile con l'errore della seriale
-SerErrReady = False         #Variabile che dice se SerErr è pronto da leggere o meno
-SerStr = ""                 #Variabile con l'ultima stringa inviata
 SerOccupata = False         #Variabile che indica se la Seriale è o meno occupata
-SerNControlli = 0           #Variabile he conta i Controlli della seriale
 
-Ser_TipoSensore = 0
-Ser_To = 0
-Ser_Tc = 0
+Tipo_Sensore = 0            #Indice del tipo di sensore in utilizzo sull arduino
 
-def SerCheckFree():
-    global SerErr
-    global SerStr
-    global SerOccupata
-    global SerNControlli
-    global SerErrReady
+Ser_To = 0                  #Variabile con il timeout della lettura dei sensori
 
-    print ("SerCheckFree")
+Ser_Tc = 1000               #Variabile con il tempo del check
 
-    if SerOccupata:
-        return False
+Sensori_Accesi = False      #Indica se i sensori sono o meno accesi
+
+#funzione che apre öa seriale
+def OpenSer():
+    global ErrorDesc
+    global ser
+    print("Apro la Seriale")
+    try:
+        ser = serial.Serial('/dev/ttyACM0', 115200, timeout= 0.1)
+        print("Seriale aperta correttamente")
+        sleep(.2)
+        ser.write("P\n".encode())
+        sleep(.8)
+        while ser.in_waiting:
+            ser.read()
+        ser.write("P\n".encode())
+        sleep(.1)
+        if ser.read() == b'A' :
+            print("Seriale aperta correttamente")
+        else:
+            print("Probabile errore durante l'apertura della seriale...")
+            ##Faccio qualcosa di stupido per far salire un'eccezione
+            ser.close()
+            ser = 0
+            ser.write("ciao") #cosa stupida
+        while ser.in_waiting:
+            ser.read()
+    except:
+        print("Non riesco ad aprire la seriale")
+        ErrorDesc="Non riesco a aprire la seriale"
+        ser = 0
+
+#funzione che controlla se ser è la seriale e se è aperta
+def CheckSer():
+    global ser
+    if ser == 0:
+        OpenSer()
     else:
-        if CheckSer()==0:
-            return False
-        SerOccupata = True
-        SerErr = False
-        if SerErrReady:
-            sleep(1.5)
-            SerErrRead = False
-        SerStr = ""
-        SerNControlli = 0
-        Clock.schedule_once(ExtremeReleaser, 1.5)
-        return True
+        try:
+            while ser.in_waiting:
+                ser.read()
+            ser.write("P\n".encode())
+            sleep (.5)
+            if ser.in_waiting:
+                if not  ser.read() == b'A':
+                    print("Errore sulla Seriale")
+            while ser.in_waiting:
+                ser.read()
+        except:
+            ser = 0
+    return ser
 
-def ExtremeReleaser():
-    global SerOccupata
-    global SerStr
-    global SerErrReady
-    global SerErr
-
-    print("ExtremeReleaser")
-
-    SerOccupata = False
-    SerStr = ""
-    SerErr = True
-    SerErrReady = True
-    Clock.unschedule(SerCheckAnsw)
-    Clock.unschedule(ExtremeReleaser)
-    Clock.schedule_once(LastRelease, 1.5)
-
-def LastRelease():
-    global SerOccupata
-    global SerStr
-    global SerErrReady
-    global SerErr
-
-    print ("LastRelease")
-
-    SerOccupata = False
-    SerStr = ""
-    SerErr = False
-    SerErrReady = False
-    Clock.unschedule(SerCheckAnsw)
-    Clock.unschedule(ExtremeReleaser)
-    Clock.unschedule(LastRelease)
-    Clock.unschedule(CheckSerErr)
-
+#Funzione che scrive sulla Seriale
+#In: Messaggio da scrivere sulla Seriale
+#out: True if Ack recived, False else
 def SerScrivi(PS):
     global SerOccupata
-    global SerStr
     global ser
-
-    if PS[-1] != '\n':
-        if SerStr == PS:
-            PS = PS+"\n"
-            SerStr = PS
-
     if SerOccupata:
-        if (PS != SerStr):
-            if (SerStr == ""):
-                SerStr = PS
-            else:
-                SerOccupata=False
-                return False
+        if not(PS[-1] == '\n'):
+            PS = PS + "\n"
         try:
-            ser.write(SerStr.encode())
-            Clock.schedule_interval(SerCheckAnsw, .3)
-            return True
+            CheckSer()
+            ser.write(PS.encode())
+            return SerSimpleCheck(10)
         except:
-            LastRelease()
             return False
     else:
-        LastRelease()
         return False
 
-def SerCheckAnsw():
-    global SerOccupata
-    global SerStr
-    global SerNControlli
+#Funzione che svuota la seriale
+def SerFlush():
+    global ser
+    try:
+        while ser.in_waiting:
+            ser.read()
+        return True
+    except:
+        return False
+
+#Funzione che esegue un check rapido per controllare se Arduino ha scritto A oppure E
+def SerSimpleCheck(l):
     global ser
 
-    if SerOccupata:
-        if ser.in_waiting > 0:
-            c = ser.read()
-            c = c.decode()
-            while((ser.in_waiting > 0)and(c!='E')and(c!='E')):
+    for t in range (l):
+        if ser.in_waiting:
+            sleep(.05)
+            while ser.in_waiting:
                 c = ser.read()
                 c = c.decode()
-            if c == 'A':
-                SerOccupata = False
-                SerErr = False
-                SerErrReady = True
-                SerStr = ""
-                Clock.unschedule(SerCheckAnsw)
-                Clock.unschedule(ExtremeReleaser)
-                Clock.schedule_once(LastRelease, 1.5)
-            elif c == 'E' :
-                SerOccupata = False
-                SerErr = True
-                SerErrReady = True
-                SerStr = ""
-                Clock.unschedule(SerCheckAnsw)
-                Clock.unschedule(ExtremeReleaser)
-                Clock.schedule_once(LastRelease, 1.5)
-        else:
-            SerNControlli = SerNControlli +1
-            if SerNControlli%4 == 0:
-                Clock.unschedule(SerCheckAnsw)
-                SerScrivi(SerStr)
-    else:
-        Clock.unschedule(SerCheckAnsw)
+                if(c == 'A'):
+                    SerFlush()
+                    return True
+                elif (c == 'E'):
+                    SerFlush()
+                    return False
+        sleep(.05)
+    return False
 
-def CheckSerErr():
-    global SerErr
+#Funzione per prenotare la Seriale
+#ritorna true se la seriale era libera e ora è stata occupata dal richiedente, falso altrimenti
+def GetSer():
     global SerOccupata
-    global SerReady
-
     if SerOccupata:
+        return False
+    else:
+        SerOccupata = True
+        return True
+
+#funzione che rilascia la Seriale
+def LeaveSer():
+    global SerOccupata
+    SerOccupata = False
+
+#funzione per gestire i messaggi piu semplici della seriale.
+#Prende in ingresso il messaggio da mandare
+#restituisce 1 se manda il messaggio con successo, 0 se la Seriale è occupata, -1 se avviene un errore
+def EasySerMsg(msg):
+    if GetSer():
+        if SerScrivi(msg):
+            r = 1
+        else:
+            r = -1
+        LeaveSer()
+        return r
+    else:
         return 0
-    else:
-        if (SerReady):
-            if SerErr:
-                Clock.unschedule(LastRelease)
-                SerReady = False
-                return 1
-            else:
-                Clock.unschedule(LastRelease)
-                SerReady = False
-                return -1
 
-def GeneralCheckSerErr():
-    for i in range(4):
-        sleep(.5)
-        c = ChekSerErr()
-        if(c==1):
-            return True
-        elif (c == -1):
-            return False
-    return False
-
-
+#funzione che implementa la funnzione di Ping
 def SerPing():
-    global SerStr
+    return EasySerMsg("P\n")
 
-    if SerCheckFree():
-        SerStr = "P\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
-def SerImpostaTipoSensori(tipo):
-    global SerStr
-
-    if SerCheckFree():
-        try:
-            tipo = str(tipo)
-        except:
-            return False
-        SerStr = "p" + tipo + "\n"
-        return SerScrivi(SerStr)
-
-    else:
-        return False
-
-def SerImpostaSensori(listaSensori):
-    global SerStr
-    global SerErr
-
-    if SerCheckFree():
-        SerStr = "s"
-        for i in range(3):
-            if listaSensori[i]== True:
-                SerStr += str(i)
-        if SerStr == "s":
-            SerErr = True
-            ErrorDesc = "Nessuna pista selezionata"
-            LastRelease()
-            return False
-        SerStr = SerStr + "\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
+#funzione che implementa la funnzione di Preparare i sensori
 def SerPreparaSensori():
-    global SerStr
+    global Sensori_Accesi
+    r =  EasySerMsg("R\n")
+    if(r == 1):
+        Sensori_Accesi = True
+    return r
 
-    if SerCheckFree():
-        SerStr = "R\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
+#funzione che implementa la funnzione di Rilasciare i sensori
 def SerRilasciaSensori():
-    global SerStr
+    global Sensori_Accesi
+    r = EasySerMsg("r\n")
+    if(r == 1):
+        Sensori_Accesi = False
+    return r
 
-    if SerCheckFree():
-        SerStr = "r\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
-def SerImpostaTipoTimeOut(tempo):
-    global SerStr
-
-    if SerCheckFree():
-        try:
-            tempo = str(int(tempo))
-        except:
-            return False
-        SerStr = "T" + tempo + "\n"
-        return SerScrivi(SerStr)
-
-    else:
-        return False
-
-def SerImpostaTipoTimeCheck(tempo):
-    global SerStr
-
-    if SerCheckFree():
-        try:
-            tempo = str(int(tempo))
-        except:
-            return False
-        SerStr = "t" + tempo + "\n"
-        return SerScrivi(SerStr)
-
-    else:
-        return False
-
-def SerCheckSensori():
-    global SerStr
-
-    if SerCheckFree():
-        SerStr = "C\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
-def SerDetectSensori():
-    global SerStr
-
-    if SerCheckFree():
-        SerStr = "D\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
-def SerSemaforo():
-    global SerStr
-
-    if SerCheckFree():
-        SerStr = "S\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
+#funzione che implementa la funnzione di Halt
 def SerHalt():
-    global SerStr
+    global Sensori_Accesi
+    r = EasySerMsg("H\n")
+    if(r == 1):
+        Sensori_Accesi = False
+    return r
 
-    if SerCheckFree():
-        SerStr = "H\n"
-        return SerScrivi(SerStr)
-    else:
-        return False
-
-
-def ArPing():
-    if SerPing():
-        return GeneralCheckSerErr()
-    return False
-
-def ArHalt():
-    if SerPing():
-        return GeneralCheckSerErr()
-    return False
-
-def ArImpostaTipoSensore(tipo):
-    global Ser_TipoSensore
-
+#Funzione che implementa la funzione di Imposta Tipo di Sensoroi
+#Controlla che il tipo passato sia valido
+#Invia il tipo
+#Se non ci sono errori aggiorna il tipo di sensore
+def SerImpostaTipoSensori(tipo):
     try:
         tipo = int(tipo)
     except:
-        return False
-    if tipo <0:
-        return False
-    if SerImpostaTipoSensori(tipo):
-        if GeneralCheckSerErr():
-            Ser_TipoSensore = tipo
-            return True
-        else:
-            return False
+        #il tipo non è valido, quindi vai in Errore
+        return -1
+    if (tipo<0):
+        #il tipo non è valido, quindi vai in Errore
+        return -1
+    return EasySerMsg("p" + str(tipo) + "\n")
+
+#funzione che imposta le piste da controllare
+#accetta in ingresso o una stringa con 0, 1, 2 o un array
+def SerImpostaSensori(sensori):
+    msg = "s"
+    if ((type(sensori))==(type([])) and(len(sensori)>=3)):
+        for i in range(3):
+            if ((sensori[i] == True) or (sensori[i] == 1)):
+                msg = msg + str(i)
+    elif (type(sensori) == type("stringa")):
+        for i in range(3):
+            if str(i) in sensori:
+                msg = msg + str(i)
+    if msg == "s":
+        #L'input era errato
+        return -1
     else:
-        return False
+        msg = msg + "\n"
+        return EasySerMsg(msg)
 
-def ArImpostaSensori(sensori):
-    if not(type(sensori) == type([])):
-        if (type(sensori)==type("stringa")):
-            tmp = []
-            for i in range(3):
-                if str(i) in sensori:
-                    tmp.append(True)
-                else:
-                    tmp.append(False)
-            sensori = tmp
-        else:
-            return False
-    if SerImpostaSensori(sensori):
-        return GeneralCheckSerErr()
-    else:
-        return False
-
-def ArPreparaSensori():
-    if SerPreparaSensori():
-        return GeneralCheckSerErr()
-    return False
-
-def ArRilasciaSensori():
-    if SerRilasciaSensori():
-        return GeneralCheckSerErr()
-    return False
-
-def ArImpostaTimeOut(tempo):
+#Funzione che Imposta il timeout
+def SerImpostaTimeOut(tempo):
     global Ser_To
-
     try:
         tempo = int(tempo)
     except:
-        return False
-    if SerImpostaTipoTimeOut(tempo):
-        if(GeneralCheckSerErr()):
-            Ser_To = tempo
-            return True
-    return False
+        return -1
+    if(tempo<=0):
+        return -1
+    r = EasySerMsg("T" + str(tempo) + "\n")
+    if(r == 1):
+        Ser_To = tempo
+    return r
 
-def ArImpostaTimeCheck(tempo):
+#Funzione che Imposta il timecheck
+def SerImpostaTimeCheck(tempo):
     global Ser_Tc
-
     try:
         tempo = int(tempo)
     except:
-        return False
-    if SerImpostaTipoTimeCheck(tempo):
-        if(GeneralCheckSerErr()):
-            Ser_To = tempo
-            return True
-    return False
+        return -1
+    if(tempo<=0):
+        return -1
+    r = EasySerMsg("t" + str(tempo) + "\n")
+    if(r == 1):
+        Ser_Tc = tempo
+    return r
 
+#Funzione per i comandi piu' lunghi
+def LongSerMsg(msg):
+    if GetSer():
+        if SerScrivi(msg):
+            return 1
+        else:
+            LeaveSer()
+            return -1
+    else:
+        return 0
+
+#Funzione per testare la calibrazione dei sensori
+def TryCheck():
+    global Ser_Tc
+    global Sensori_Accesi
+    prec = Sensori_Accesi
+    r = SerImpostaSensori([1,1,1])
+    if not (r == 1):
+        if not(prec):
+            SerRilasciaSensori()
+        return r
+    r = SerImpostaTimeCheck(Ser_Tc)
+    if not (r == 1):
+        if not(prec):
+            SerRilasciaSensori()
+        return r
+    r = LongSerMsg("C\n")
+    if r == 1:
+        sleep(Ser_Tc/1000)
+        if SerSimpleCheck(10):
+            LeaveSer()
+            if not(prec):
+                SerRilasciaSensori()
+            return 1
+        else:
+            LeaveSer()
+            if not(prec):
+                SerRilasciaSensori()
+            return -1
+    else:
+        if not(prec):
+            SerRilasciaSensori()
+        return r
 
 class Welcome(Screen):
     inFunz=0
@@ -763,6 +665,26 @@ class Race(Screen):
 
 class Impostazioni(Screen):
 
+    SensoriAccesi = BooleanProperty(False)
+    ValCheckSensori = NumericProperty(0)
+
+    def on_pre_enter(self, *args):
+        global Sensori_Accesi
+        self.SensoriAccesi = Sensori_Accesi
+        self.ValCheckSensori = 0
+
+    def Accendi_Spegni_Sensori(self, *args):
+        global Sensori_Accesi
+        if self.SensoriAccesi :
+            if (SerRilasciaSensori()==1):
+                self.SensoriAccesi = False
+        else:
+            if(SerPreparaSensori()==1):
+                self.SensoriAccesi = True
+
+    def ControllaSensori(self, *args):
+        self.ValCheckSensori = TryCheck()
+
     def F_Nome_C(self, *args):
         global Nome_Corsa
         return Nome_Corsa
@@ -840,6 +762,18 @@ class MyScreenManager(ScreenManager):
     pass
 
 class MoreOptions(Screen):
+
+    def GetTc(self, *args):
+        global Ser_Tc
+        return str(Ser_Tc)
+
+    def SaveTc(self, *args):
+        global Ser_Tc
+        try:
+            Ser_Tc = int(self.ids.Tc_In.text)
+        except:
+            Ser_Tc = Ser_Tc
+            self.ids.Tc_In.txt = str(Ser_Tc)
     pass
 
 class WIP(Screen):
@@ -851,52 +785,6 @@ class root_widget(Widget):
 class SemaphApp(App):
     pass
 
-def OpenSer():
-    global ErrorDesc
-    global ser
-    print("Apro la Seriale")
-    try:
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout= 0.1)
-        print("Seriale aperta correttamente")
-        sleep(.2)
-        ser.write("P\n".encode())
-        sleep(.8)
-        while ser.in_waiting:
-            ser.read()
-        ser.write("P\n".encode())
-        sleep(.1)
-        if ser.read() == b'A' :
-            print("Seriale aperta correttamente")
-        else:
-            print("Probabile errore durante l'apertura della seriale...")
-            ##Faccio qualcosa di stupido per far salire un'eccezione
-            ser.close()
-            ser = 0
-            ser.write("ciao") #cosa stupida
-        while ser.in_waiting:
-            ser.read()
-    except:
-        print("Non riesco ad aprire la seriale")
-        ErrorDesc="Non riesco a aprire la seriale"
-        ser = 0
 
-def CheckSer():
-    global ser
-    if ser == 0:
-        OpenSer()
-    else:
-        try:
-            while ser.in_waiting:
-                ser.read()
-            ser.write("P\n".encode())
-            sleep (.5)
-            if ser.in_waiting:
-                if not  ser.read() == b'A':
-                    print("Errore sulla Seriale")
-            while ser.in_waiting:
-                ser.read()
-        except:
-            ser = 0
-    return ser
 
 SemaphApp().run()

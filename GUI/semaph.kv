@@ -561,6 +561,22 @@ MyScreenManager:
                 Label:
                     text: "campo vuoto"
                 Button:
+                    background_color: (.9, .4, .1, .75) if (root.ValCheckSensori==0) else (.8, .25, .2, .75) if (root.ValCheckSensori<0) else (.25, .8, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
+                    yize_hint_x: .5
+                    font_size: 30
+                    text: "Controlla"
+                    on_release: root.ControllaSensori()
+                Button:
+                    background_color: (.25, .8, .2, .75) if root.SensoriAccesi else (.8, .25, .2, .75)
+                    border: 25, 0, 0, 10
+                    size_hint_y: .18
+                    yize_hint_x: .5
+                    font_size: 30
+                    text: "Spegni" if root.SensoriAccesi else "Accendi"
+                    on_release: root.Accendi_Spegni_Sensori()
+                Button:
                     background_color: (.8, .25, .2, .75)
                     border: 25, 0, 0, 10
                     size_hint_y: .18
@@ -585,7 +601,21 @@ MyScreenManager:
             color: 1, 0, 0, 1
             text: "More Options"
         BoxLayout:
-            #vuoto
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    hint_size_y:None
+                    text : "Tc"
+                BoxLayout:
+                    TextInput:
+                        id: Tc_In
+                        hint_size_y : None
+                        text : root.GetTc()
+                        hint_size_x : .75
+                    Button:
+                        hint_size_y : None
+                        text: "Save"
+                        on_release: root.SaveTc()
         Button:
             size_hint_y: .2
             text: 'Home'

@@ -372,6 +372,9 @@ void HandleMessage(){
       SensorsGetReady();
     }
 
+    //Manda un Ack per indicare di aver ricevuto il messaggio
+    Serial.println("A");
+    
     //Effettuo il Check
     if (SensorsCheck()){
       //Se il check va a buon fine scrivo A
