@@ -30,6 +30,10 @@ void (*SensorsResetCheckDataArray[MAX_TIPO_SENSORE+1]) ();
 bool (*SensorsCheckArray[MAX_TIPO_SENSORE+1]) ();
 //Array delle funzioni di check dei sensori
 bool (*SensorsDetectArray[MAX_TIPO_SENSORE+1]) ();
+//Array delle funzioni per ritornare soglie dei sensori
+void (*SensorsPrintSoglieArray[MAX_TIPO_SENSORE+1]) (int punt[3]);
+//Array delle funzioni di Imposta soglia dei sensori
+bool (*SensorsImpostaSoglieArray[MAX_TIPO_SENSORE+1]) (int s);
 
 //Variabile con il numero di millisecondi che deve durare la lettura dei sensori prima di andare in TimeOut
 unsigned int To;
@@ -64,6 +68,10 @@ void SensorsResetCheckData();
 bool SensorsCheck();
 //Funzione per il Detect dei sensori
 bool SensorsDetect();
+//Funzione per calcolare le soglie dei sensori
+void SensorsPrintSoglie(int punt[3]);
+//Funzione per impostare la soglia
+bool SensorsImpostaSoglia(int s);
 
 //Funzione Semaforo 
 void Semaforo();
@@ -72,6 +80,9 @@ void SemStart();
 
 //Funzione che stampa il risultato del Detect
 bool PrintResult();
+
+//Funzione che stampa le soglie dei sensori
+void PrintSoglie();
 
 //Funzione che inizializza gli array
 void InitArrays();
@@ -201,6 +212,33 @@ bool SensorsCheck(){
     Serial.println("S");
     return false;
   }
+}
+
+//Funzione per restituire le soglie
+//Precondizione: Deve essere stato inizializzato il vettore con le funzioni
+//               TipoSensore deve avere senso
+//               punt deve puntare a un array vuoto
+void SensorsPrintSoglie(int punt[3]){
+  if((TipoSensore<0)||(TipoSensore>MAX_TIPO_SENSORE)){
+    return;
+  }
+  (SensorsPrintSoglieArray[TipoSensore])(punt);
+  return;
+}
+
+
+//Funzione per restituire le soglie
+//Precondizione: Deve essere stato inizializzato il vettore con le funzioni
+//               TipoSensore deve avere senso
+//               s deve essere un valore valido per fare da soglia (
+bool SensorsImpostaSoglia(int s){
+  if((TipoSensore<0)||(TipoSensore>MAX_TIPO_SENSORE)){
+    return false;
+  }
+  if(s<=0){
+    return false;
+  }
+  return (SensorsImpostaSoglieArray[TipoSensore])(s);
 }
 
 
@@ -383,6 +421,11 @@ void HandleMessage(){
       //Se non va a buon fine c'è un errore 
       Serial.println("E");
     }
+    //Se il messaggio è "Cp"
+    if (buff[1] == 'p'){
+      //Scrivi le soglie
+      PrintSoglie();
+    }
   }else if(buff[0] == 'D'){
     //Il comando è del tipo "Detect Pista"
     //Precondizioni: Settori preparati, controllati (non viene controllata questa condizione) e piste selezionate, TI sia stato settato
@@ -435,6 +478,34 @@ void HandleMessage(){
 
     //Scrivo A
     Serial.println("A");
+  }else if (buff[0] == 'f'){
+    //Il comando è del tipo "Imposta soglia"
+    //Leggo il valore di soglia
+    unsigned int tmp = 0;
+    for(i = 1; buff[i] !=0; i++){
+      //Leggo la cifra scritta in buff[i]
+      buff[i]-='0';
+      //Se è una cifra va avanti a leggere
+      if ((buff[i]<0)||(buff[i]>10)){
+        //Se non è una cirfa va in errore
+        Serial.println("E");
+        return;
+      }else{
+        tmp*=10;
+        tmp += buff[i];
+      }
+    }
+    //Se ha letto 0
+    if (tmp == 0){
+      Serial.println("E");
+      return;
+    }
+    //Se tuto è andato a buon fine imposta la soglia
+    if(SensorsImpostaSoglia(tmp)){
+      Serial.println("A");
+    }else{
+      Serial.println("E");
+    }
   }
 }
 
@@ -577,6 +648,23 @@ bool PrintResult(){
   return true;
 }
 
+//Funzione che scrive le soglie dei sensori
+void PrintSoglie(){
+  int punt[3];
+  int i;
+
+  //Calcola le soglie del sensore
+  SensorsPrintSoglie(punt);
+
+  //Stampo il risultato
+  Serial.println("V");
+  for (i=0; i<3; i++){
+    Serial.print(i);
+    Serial.print(" . ");
+    Serial.println(punt[i]);
+  }
+}
+
 /*******************************************************
  *    PARTE DEDICATA ALLE FUNZIONI DEI SENSORI         *
  *******************************************************/
@@ -590,7 +678,7 @@ bool PrintResult(){
 #define SENS_P_1 A2
 #define SENS_P_2 A3
 
-#define soglia 7
+#define Def_soglia 7
 
 #define N_CICLI_INTERNI_DEFAULT 512
 
@@ -599,6 +687,8 @@ bool PrintResult(){
 //Variabili per il sensore di DEFAULT
 //SOglie
 int Av[3], Max[3], Min[3];
+//Soglia
+int soglia = Def_soglia;
 //Pin dei sensori
 int PinSensPista[3];
 
@@ -619,6 +709,10 @@ bool Default_Detect();
 void Default_Rilascia();
 //Funzione per Resettare i dati dei precedenti Check
 void Default_ResetCheckData();
+//Funzione che ritorna le soglie dei sensori
+void Default_PrintSoglie(int punt[3]);
+//Funzione che imposta la soglia
+bool Default_ImpostaSoglia(int s);
 
 
 //Funzione che inizializza i vettori delle funzioni
@@ -634,6 +728,8 @@ void InitArrays(){
   SensorsResetCheckDataArray[0] = Default_ResetCheckData;
   SensorsCheckArray[0] = Default_Check;
   SensorsDetectArray[0] = Default_Detect;
+  SensorsPrintSoglieArray[0] = Default_PrintSoglie;
+  SensorsImpostaSoglieArray[0] = Default_ImpostaSoglia;
 }
 
 //Funzione di Setup del sensore di default
@@ -647,6 +743,9 @@ void Default_Setup(){
   PinSensPista[0] = SENS_P_0;
   PinSensPista[1] = SENS_P_1;
   PinSensPista[2] = SENS_P_2;
+
+  //Imposto soglia
+  Default_ImpostaSoglia(Def_soglia);
   
   //Imposto i sensori come se fossero stati rilasciati
   Default_Rilascia();
@@ -729,25 +828,33 @@ bool Default_Check(){
     if (PistaSel[i]){
       if(Av[i] == 0){
         Av[i] = sum[i] /n_cicli;
-        if(t_max[i]> Av[i] + soglia){
-          return false;
-        }
-        if(t_min[i] < Av[i] - soglia){
-          return false;
-        }
+
         Max[i] = (t_max[i] + Av[i] + soglia)/2;
         Min[i] = (t_min[i] + Av[i] - soglia)/2;
         
-      }else{
-        sum[i] = sum[i] / n_cicli;
-        if((sum[i] > Max[i])||(sum[i] < Min[i])){
+        if(t_max[i]> Av[i] + soglia){
+          Av[i] = 0;
           return false;
         }
+        if(t_min[i] < Av[i] - soglia){
+          Av[i] = 0;
+          return false;
+        }
+        
+      }else{
+        sum[i] = sum[i] / n_cicli;
+        
         Max[i] = (t_max[i] + Max[i] + soglia/2)/2;
         Min[i] = (t_min[i] + Min[i] - soglia/2)/2;
-        Av[i] = (Av[i] + sum[i])/2;
+        
+        if((sum[i] > Max[i])||(sum[i] < Min[i])){
+          return false;
+        }        
 
+        Av[i] = (Av[i] + sum[i])/2;
+        
         if((Av[i]+soglia < Max[i])||(Av[i]-soglia > Min[i])){
+          Av[i] = 0;
           return false;
         }
       }
@@ -814,5 +921,27 @@ bool Default_Detect(){
       }
     }
   }
+  return true;
+}
+
+//Funzione che restituisce i valori delle soglie dei sensori
+//In : Puntatore a un array di 3 elementi per salvare i risultati
+//Out: Non restituisce nulla: salva nellârray quello che deve passare indietro
+void Default_PrintSoglie(int punt[3]){
+  int i;
+  //Ciclo tra i valori delle piste e salvo la differenza del massimo e minimo
+  for (i=0; i<3; i++){
+    punt[i] = Max[i] - Min[i];
+  }
+}
+
+//Funzione he imposta la soglia
+//In : int s >0 che diventera' la nuova soglia
+//Out: true se tutto ok, false else
+bool Default_ImpostaSoglia(int s){
+  if(s<=0){
+    return false;
+  }
+  soglia = s;
   return true;
 }
