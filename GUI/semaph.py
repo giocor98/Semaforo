@@ -47,17 +47,17 @@ SerOccupata = False             #Variabile che indica se la Seriale è o meno oc
 
 Tipo_Sensore = 0                #Indice del tipo di sensore in utilizzo sull arduino
 
-Ser_To = 10000                  #Variabile con il timeout della lettura dei sensori
+Ser_To = 3000                  #Variabile con il timeout della lettura dei sensori
 
-Ser_Tc = 1000                   #Variabile con il tempo del check
+Ser_Tc = 500                   #Variabile con il tempo del check
 
 Sensori_Accesi = False          #Indica se i sensori sono o meno accesi
 
-Check_In_Lap_Settings = True    #Variabile di supporto per CheckDuringLaps
+Check_In_Lap_Settings = True  #Variabile di supporto per CheckDuringLaps
 
 Long_Ser = False                #Variabile che impedisce la lettura della seriale per operazioni lunghe
 
-Wait_Between_Laps = 2
+Wait_Between_Laps = .5
 
 UnitaMisura = 1
 
@@ -611,6 +611,7 @@ class Race(Screen):
         global nGiri
 
         r = SimpleSerRead()
+        #print(r)
         if (r == -1):
             Clock.unschedule(self.Counter)
             self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
@@ -700,7 +701,6 @@ class Race(Screen):
             for i in range(3):
                 Nm = self.MacchinaInPista[i] -1
                 if val[i] == 0:
-                    print(Nm)
                     Tempi[Nm][i] = 0
                     if Nm == 0:
                         self.IP1 = False
@@ -709,6 +709,7 @@ class Race(Screen):
                     elif Nm == 2:
                         self.IP3 = False
                 elif (not(((Nm==0)and(self.IP1 == False))or((Nm==1)and(self.IP2 == False)) or((Nm==2)and(self.IP3==False)))):
+                    print(Nm)
                     self.TempoPiste[Nm + 3*(giro-1)] = str((val[i]-self.TempoStart[Nm])/UnitaMisura)
                     Tempi[Nm][giro-1] = val[i]-self.TempoStart[Nm]
         for i in range(3):
@@ -788,6 +789,7 @@ class Race(Screen):
         global Long_Ser
         print("CIL")
         if (Check_In_Lap_Settings):
+            print("Cazz")
             if not (SerSimpleCheck(30)):
                 LeaveSer()
                 ErrorDesc= "Non riesco a ricalibrarei sensori"
@@ -802,6 +804,8 @@ class Race(Screen):
             ErrorDesc= "Non riesco a far ripartire i sensori"
             self.RaiseError(ErrorDesc)
             Clock.unschedule(self.Counter)
+        else:
+            print("OK")
 
 
     def Start(self, *args):

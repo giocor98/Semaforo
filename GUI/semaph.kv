@@ -932,6 +932,7 @@ MyScreenManager:
                                     font_size: 30
                                     text: "Togli Calibrazione" if root.MO_CheckDuranteGara else "Aggiungi Calibrazione"
                                     on_release: root.MO_CheckDuranteGara = not(root.MO_CheckDuranteGara)
+                                    disabled: True
                             BoxLayout:
                                 TextInput:
                                     id : In_soglia
