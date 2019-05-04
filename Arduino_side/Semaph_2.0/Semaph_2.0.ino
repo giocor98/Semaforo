@@ -612,6 +612,7 @@ void Semaforo(){
   //Se tutto è andato a buon fine:
   //reimposto Tc
   Tc = i;
+  delay(1000);
   //Accendo il Verde
   digitalWrite(GREEN, HIGH);
   digitalWrite(YELLOW, HIGH);
@@ -847,16 +848,16 @@ bool Default_Check(){
         Max[i] = (t_max[i] + Max[i] + soglia/2)/2;
         Min[i] = (t_min[i] + Min[i] - soglia/2)/2;
         
-        if((sum[i] > Max[i])||(sum[i] < Min[i])){
+/*        if((sum[i] > Max[i])||(sum[i] < Min[i])){
           return false;
-        }        
+        }        */
 
         Av[i] = (Av[i] + sum[i])/2;
         
-        if((Av[i]+soglia < Max[i])||(Av[i]-soglia > Min[i])){
+/*        if((Av[i]+soglia < Max[i])||(Av[i]-soglia > Min[i])){
           Av[i] = 0;
           return false;
-        }
+        }*/
       }
     }
   }
