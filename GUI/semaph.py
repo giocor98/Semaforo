@@ -31,6 +31,8 @@ Nome_Macchina_3 = "Macchina_3"
 Corre_Macchina_1 = True
 Corre_Macchina_2 = True
 Corre_Macchina_3 = True
+Tempi = [[0,0,0],[0,0,0],[0,0,0]]
+
 
 nGiri = 0
 
@@ -57,13 +59,20 @@ Long_Ser = False                #Variabile che impedisce la lettura della serial
 
 Wait_Between_Laps = 2
 
+UnitaMisura = 1
+
+Ser_Soglia = 7
+
+SerAddr = '/dev/ttyACM0'
+
 #funzione che apre öa seriale
 def OpenSer():
     global ErrorDesc
     global ser
+    global SerAddr
     print("Apro la Seriale")
     try:
-        ser = serial.Serial('/dev/ttyACM0', 115200, timeout= 0.1)
+        ser = serial.Serial(SerAddr, 115200, timeout= 0.1)
         print("Seriale aperta correttamente")
         sleep(.2)
         ser.write("P\n".encode())
@@ -124,7 +133,7 @@ def SerScrivi(PS, d = 10, n = 0):
         except:
             if n == 0:
                 CheckSer()
-                return SerScrivi(PS, 1)
+                return SerScrivi(PS,10, 1)
             return False
     else:
         return False
@@ -311,6 +320,20 @@ def SerImpostaTimeCheck(tempo):
     r = EasySerMsg("t" + str(tempo) + "\n")
     if(r == 1):
         Ser_Tc = tempo
+    return r
+
+#Funzione che Imposta la soglia
+def SerImpostaSoglia(sogl):
+    global Ser_Soglia
+    try:
+        sogl = int(sogl)
+    except:
+        return -1
+    if(sogl<=0):
+        return -1
+    r = EasySerMsg("f" + str(sogl) + "\n")
+    if(r == 1):
+        Ser_Soglia = sogl
     return r
 
 #Funzione per i comandi piu' lunghi
@@ -616,12 +639,12 @@ class Race(Screen):
             self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
             self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
             self.ids.Green_Light.bgcolor = (.9, .4, .1, 1)
-            print("Errore da parte di Arduino")
+            print("Errore durante la calibrazione dei sensori")
             Clock.unschedule(self.Counter)
             self.ids.stop_button.color = (1, 0, 0, 1)
             self.ids.settings_button.color= (0, 1, 0, 1)
             self.ids.start_button.color = (0, 1, 0, 1)
-            ErrorDesc = "Errore sui sensori"
+            ErrorDesc = "Errore durante la calibrazione dei sensori"
             self.RaiseError(ErrorDesc)
             LeaveSer()
             return
@@ -658,6 +681,9 @@ class Race(Screen):
         global tipoPista
         global LastGiro
         global Wait_Between_Laps
+        global UnitaMisura
+
+        global Tempi
 
         if giro == 0:
             self.MacchinaInPista = [1, 2, 3]
@@ -675,6 +701,7 @@ class Race(Screen):
                 Nm = self.MacchinaInPista[i] -1
                 if val[i] == 0:
                     print(Nm)
+                    Tempi[Nm][i] = 0
                     if Nm == 0:
                         self.IP1 = False
                     elif Nm == 1:
@@ -682,7 +709,8 @@ class Race(Screen):
                     elif Nm == 2:
                         self.IP3 = False
                 elif (not(((Nm==0)and(self.IP1 == False))or((Nm==1)and(self.IP2 == False)) or((Nm==2)and(self.IP3==False)))):
-                    self.TempoPiste[Nm + 3*(giro-1)] = str(val[i]-self.TempoStart[Nm])
+                    self.TempoPiste[Nm + 3*(giro-1)] = str((val[i]-self.TempoStart[Nm])/UnitaMisura)
+                    Tempi[Nm][giro-1] = val[i]-self.TempoStart[Nm]
         for i in range(3):
             self.MacchinaInPista[i] = self.MacchinaInPista[i] + tipoPista
             if(self.MacchinaInPista[i] >3):
@@ -691,12 +719,19 @@ class Race(Screen):
                 self.MacchinaInPista[i] = 3
         print("Macchina in pista")
         print(self.MacchinaInPista)
+        t = False
+        if not((self.IP1)or(self.IP2)or(self.IP3)):
+            t = True
         if giro == LastGiro:
             print("Fine Gara")
             self.Stop()
         else:
-            print("NotFinished")
-            Clock.schedule_once(self.CalcolaPiste, Wait_Between_Laps)
+            if t:
+                print ("TimeOut")
+                self.Stop()
+            else:
+                print("NotFinished")
+                Clock.schedule_once(self.CalcolaPiste, Wait_Between_Laps)
 
     def CalcolaPiste(self, *args):
         global ErrorDesc
@@ -721,7 +756,7 @@ class Race(Screen):
         print(sens)
 
         if not(SerImpostaSensori(sens)==1):
-            ErrorDesc= "Non riesco a impostare i sensori"
+            ErrorDesc= "Sem: Non riesco a impostare i sensori"
             self.RaiseError(ErrorDesc)
             Clock.unschedule(self.Counter)
             return
@@ -729,12 +764,12 @@ class Race(Screen):
             print("Checkinthislap")
             r = LongSerMsg("C\n")
             if (r == 0):
-                ErrorDesc= "Non riesco a ricalibrare i sensori"
+                ErrorDesc= "Non riesco a calibrare i sensori"
                 self.RaiseError(ErrorDesc)
                 Clock.unschedule(self.Counter)
                 return
             elif (r == -1):
-                ErrorDesc= "I sensori non si ricalibrano"
+                ErrorDesc= "Non riesco a calibrare i sensori"
                 self.RaiseError(ErrorDesc)
                 Clock.unschedule(self.Counter)
                 return
@@ -744,7 +779,7 @@ class Race(Screen):
         else:
             print("notCheckinthislap")
             Long_Ser = True
-            self.CheckInLaps()
+            Clock.schedule_once(self.CheckInLaps)
         return
 
     def CheckInLaps(self, *args):
@@ -755,7 +790,7 @@ class Race(Screen):
         if (Check_In_Lap_Settings):
             if not (SerSimpleCheck(30)):
                 LeaveSer()
-                ErrorDesc= "Non riesco a leggere i sensori"
+                ErrorDesc= "Non riesco a ricalibrarei sensori"
                 self.RaiseError(ErrorDesc)
                 Clock.unschedule(self.Counter)
                 Long_Ser = False
@@ -780,12 +815,23 @@ class Race(Screen):
         global Nome_Macchina_2
         global Nome_Macchina_3
 
+        global Tempi
+        global LastGiro
+
+        for i in range(3):
+            tmp = []
+            for j in range(LastGiro):
+                tmp.append(0)
+            Tempi[i] = tmp
+
         nGiri = 0
         if CheckSer() == 0:
             print("Errore nell'apertura della seriale con lo start")
             ErrorDesc = "Non riesco ad aprire la seriale con lo start"
             self.RaiseError(ErrorDesc)
             return
+
+        InitSer()
 
         #Seleziono le piste da ontrollare
         sens = [0, 0, 0]
@@ -859,6 +905,7 @@ class Race(Screen):
         self.ids.settings_button.color= (0, 1, 0, 1)
 
         T = 10
+        self.parent.current = 'WIN'
 
     def RaiseError(self,codiceErrore):
         global ErrorDesc
@@ -870,6 +917,12 @@ class Race(Screen):
         Clock.unschedule(self.CalcolaPiste)
         Clock.unschedule(self.CheckInLaps)
         self.ids.settings_button.color= (0, 1, 0, 1)
+        if (SerHalt(10000) == 1):
+            self.ids.start_button.color = (0, 1, 0, 1)
+            self.ids.stop_button.color = (1, 0, 0, 1)
+        else:
+            self.ids.start_button.color = (1, 0, 0, 1)
+            self.ids.stop_button.color = (0, 1, 0, 1)
 
         self.ids.Red_Light.bgcolor = (.9, .4, .1, 1)
         self.ids.Yellow_Light.bgcolor = (.9, .4, .1, 1)
@@ -880,22 +933,11 @@ class Race(Screen):
 
 class Impostazioni(Screen):
 
-    SensoriAccesi = BooleanProperty(False)
     ValCheckSensori = NumericProperty(0)
 
     def on_pre_enter(self, *args):
-        global Sensori_Accesi
-        self.SensoriAccesi = Sensori_Accesi
-        self.ValCheckSensori = 0
 
-    def Accendi_Spegni_Sensori(self, *args):
-        global Sensori_Accesi
-        if self.SensoriAccesi :
-            if (SerRilasciaSensori()==1):
-                self.SensoriAccesi = False
-        else:
-            if(SerPreparaSensori()==1):
-                self.SensoriAccesi = True
+        self.ValCheckSensori = 0
 
     def ControllaSensori(self, *args):
         self.ValCheckSensori = TryCheck()
@@ -978,17 +1020,436 @@ class MyScreenManager(ScreenManager):
 
 class MoreOptions(Screen):
 
-    def GetTc(self, *args):
-        global Ser_Tc
-        return str(Ser_Tc)
+    MO_TO = NumericProperty(0)
+    C_MOTO = BooleanProperty(False)
 
-    def SaveTc(self, *args):
-        global Ser_Tc
+    MO_TC = NumericProperty(0)
+    C_MOTC = BooleanProperty(False)
+
+    UM = NumericProperty(1)
+
+    MO_Ser = StringProperty("")
+    C_MOSer = BooleanProperty(False)
+    F_MOSer = BooleanProperty(False)
+
+    MO_WBL = NumericProperty(0)
+    C_MOWBL = BooleanProperty(False)
+
+    MO_PISTE_SEL = ListProperty([False, False, False])
+    MO_PISTE_CHECKED = ListProperty([False, False, False])
+    MO_CHECKING = BooleanProperty(False)
+    MO_SOGLIA = ListProperty([0, 0, 0])
+    MO_GEN_SOGLIA = NumericProperty(0)
+    MO_SensoriAccesi = BooleanProperty(False)
+
+    MO_CHECKED = NumericProperty(0)
+
+    MO_CheckDuranteGara = BooleanProperty(False)
+
+    MO_TEST_COLOR = ListProperty([(1, 0, 0, 1), (1, 1, 0, 1), (0, 1, 0, 1)])
+
+    MOTipoPista = BooleanProperty(True)
+
+    MO_Ngiri = StringProperty("")
+
+    MO_Soglia = NumericProperty(8)
+
+    def on_pre_enter(self, *args):
+        self.SetMOTO()
+        self.SetMOTC()
+        self.SetUM()
+        self.SetSer()
+        self.SetWBL()
+        self.SetMOPISTE()
+        self.SetCheckDuranteGara()
+        self.SetMOTipoPista()
+        self.SetNGiri()
+
+
+    def MOSaveSoglia(self, *args):
+        global Ser_Soglia
+        t = self.ids.In_soglia.text
         try:
-            Ser_Tc = int(self.ids.Tc_In.text)
+            t = int(t)
         except:
-            Ser_Tc = Ser_Tc
-            self.ids.Tc_In.txt = str(Ser_Tc)
+            t = Ser_Soglia
+        if not(t == Ser_Soglia):
+            SerImpostaSoglia(t)
+        self.MO_GEN_SOGLIA = Ser_Soglia
+        self.ids.In_soglia.text = str(Ser_Soglia)
+
+    def SaveNGiri(self, *args):
+        global LastGiro
+        t = self.ids.In_giri.text
+        try:
+            t = int(t)
+            LastGiro = t
+        except:
+            pass
+        self.SetNGiri()
+
+
+    def SetNGiri(self, *args):
+        global LastGiro
+        self.MO_Ngiri = str(LastGiro)
+        self.ids.In_giri.text = self.MO_Ngiri
+
+    def SetMOTipoPista(self, *args):
+        global tipoPista
+        if tipoPista==1:
+            self.MOTipoPista=True
+        else:
+            self.MOTipoPista = False
+
+    def on_MOTipoPista(self,  *args):
+        global tipoPista
+        if (self.MOTipoPista):
+            tipoPista = 1
+        else:
+            tipoPista = -1
+
+    def MOTestLap(self, *args):
+        global tipoPista
+        n = [0, 0, 0]
+        x = 0
+        for i in range(3):
+            if(tipoPista == 1):
+                x = i + 1
+                if(x==3):
+                    x=0
+                n[x] = self.MO_TEST_COLOR[i]
+            elif(tipoPista == -1):
+                x = i - 1
+                if(x <0):
+                    x = 2
+                n[x] = self.MO_TEST_COLOR[i]
+            else:
+                n[i] = self.MO_TEST_COLOR[i]
+        for i in range(3):
+            self.MO_TEST_COLOR[i] = n[i]
+
+    def MOHalt(self, *args):
+        SerHalt(1000)
+
+    def SetCheckDuranteGara(self, *args):
+        global Check_In_Lap_Settings
+        self.MO_CheckDuranteGara = Check_In_Lap_Settings
+
+    def on_MO_CheckDuranteGara(self, *args):
+        global Check_In_Lap_Settings
+        Check_In_Lap_Settings = self.MO_CheckDuranteGara
+
+    def SetMOTO(self, *args):
+        global Ser_To
+        self.MO_TO = Ser_To
+        self.ids.In_To.text = str(self.MO_TO)
+        self.C_MOTO = False
+
+    def SaveTo(self, *args):
+        global Ser_To
+        t = self.ids.In_To.text
+        try:
+            t = int(t)
+        except:
+            t = -1
+        if (t>0):
+            SerImpostaTimeOut(t)
+
+        self.ids.In_To.text = str(Ser_To)
+        self.MO_TO = Ser_To
+        self.C_MOTO = False
+        return
+
+    def SetMOTC(self, *args):
+        global Ser_Tc
+        self.MO_TC = Ser_Tc
+        self.ids.In_Toc.text = str(self.MO_TC)
+        self.C_MOTC = False
+
+    def SaveTC(self, *args):
+        t = self.ids.In_Toc.text
+        try:
+            t = int(t)
+        except:
+            t = -1
+        if (t>0):
+            SerImpostaTimeCheck(t)
+
+        self.SetMOTC()
+        self.ids.In_Toc.text = str(self.MO_TC)
+        return
+
+    def SetUM(self, *args):
+        global UnitaMisura
+        self.UM = UnitaMisura
+
+    def on_UM(self, *args):
+        global UnitaMisura
+        UnitaMisura = self.UM
+
+    def SetSer(self, *args):
+        global SerAddr
+        self.MO_Ser = SerAddr
+        self.TestaSer()
+        self.ids.In_ser.text = self.MO_Ser
+        self.C_MOSer = False
+
+    def SaveSer(self, *args):
+        global SerAddr
+        global ser
+
+        self.MO_Ser = self.ids.In_ser.text
+        SerAddr = self.MO_Ser
+        self.C_MOSer = False
+        try:
+            ser.close()
+        except:
+            pass
+        ser = 0
+
+    def TestaSer(self, *args):
+        if self.C_MOSer:
+            self.F_MOSer = False
+        else:
+            if(SerPing()==1):
+                self.F_MOSer = True
+            else:
+                self.F_MOSer = False
+
+    def SetWBL(self, *args):
+        global Wait_Between_Laps
+
+        self.MO_WBL = Wait_Between_Laps*1000
+        self.ids.In_WBL.text = str(self.MO_WBL)
+        self.C_MOWBL =  False
+
+    def SaveWBL(self, *args):
+        global Wait_Between_Laps
+
+        self.MO_WBL = self.ids.In_WBL.text
+        try:
+            self.MO_WBL = int(self.MO_WBL)
+        except:
+            self.SetWBL()
+            return
+        if (self.MO_WBL <0):
+            self.SetWBL()
+            return
+        Wait_Between_Laps = self.MO_WBL/1000
+        self.C_MOWBL = False
+
+    def SetMOPISTE(self, *args):
+        global Ser_Soglia
+        for i in range(3):
+            self.MO_PISTE_SEL[i] = False
+            self.MO_PISTE_CHECKED[i] = False
+            self.MO_SOGLIA[i] = 0
+        self.MO_GEN_SOGLIA = Ser_Soglia
+        self.MO_CHECKED = 0
+        self.MO_CHECKING = False
+
+    def MOCheck(self, *args):
+        global Ser_Tc
+        global ser
+        self.MO_CHECKING = True
+        piste = [0, 0, 0]
+        if Ser_Tc <=0:
+            self.MO_CHECKING = False
+            return
+        for i in range(3):
+            self.MO_PISTE_CHECKED[i] = False
+            self.MO_SOGLIA[i] = 0
+            if self.MO_PISTE_SEL[i]:
+                piste[i] = 1
+        if not 1 in piste:
+            self.MO_CHECKING = False
+            return
+        if not(SerImpostaSensori(piste) == 1):
+            self.MO_CHECKING = False
+            return
+        if not(SerImpostaTimeCheck(Ser_Tc)):
+            self.MO_CHECKING = False
+            return
+        if (LongSerMsg("Cp\n")==1):
+            sleep(Ser_Tc/1000+.2)
+            r = SerSimpleCheck(20)
+            if ser.in_waiting:
+                c = ''
+                while ((not(c == 'V'))and(ser.in_waiting)):
+                    c = ser.read()
+                    c = c.decode()
+                stri = ["", "", "", ""]
+                if ser.in_waiting:
+                    for i in range(3):
+                        stri[i] = ser.readline()
+                        stri[i] = stri[i].decode()
+                if ser.in_waiting:
+                    stri[3] = ser.readline()
+                    stri[3] = stri[3].decode()
+
+                print(stri)
+                for i in range(3):
+                    x = i
+                    if not(stri[0][0] == '0'):
+                        x = i + 1
+                    print(stri[x])
+                    try:
+                        self.MO_SOGLIA[i] = int(stri[x][stri[x].index(" . ")+2:])
+                    except:
+                        self.MO_SOGLIA[i] = 0
+            LeaveSer()
+            if r:
+                for i in range(3):
+                    if (self.MO_PISTE_SEL[i]):
+                        self.MO_PISTE_CHECKED[i]=True
+
+
+        self.MO_CHECKING = False
+        return
+
+    def press(self, i):
+        self.MO_PISTE_SEL[i] = not(self.MO_PISTE_SEL[i])
+        self.MO_PISTE_CHECKED[1] = False
+        self.MO_SOGLIA[1] = 0
+
+    def SetMOAccesi(self, *args):
+        global Sensori_Accesi
+        self.MO_SensoriAccesi = Sensori_Accesi
+
+    def MOAccendi_Spegni_Sensori(self, *args):
+        global Sensori_Accesi
+        if self.MO_SensoriAccesi :
+            if (SerRilasciaSensori()==1):
+                self.MO_SensoriAccesi = False
+        else:
+            if(SerPreparaSensori()==1):
+                self.MO_SensoriAccesi = True
+
+    MO_N_RETT = 0
+    MO_N_CURVA = 0
+    MO_N_PARAB = 0
+    MO_N_SCAMBIO = 0
+    MO_LEN = StringProperty("")
+
+
+    def AdjRett(self, *args):
+        t = self.ids.In_Rett.text
+        if t=='':
+            t = 0
+        try:
+            t = int(t)
+        except:
+            t = self.MO_N_RETT
+            self.ids.In_Rett.text = str(t)
+        self.MO_N_RETT = t
+        self.CalcLen()
+
+    def AdjCurva(self, *args):
+        t = self.ids.In_Curva.text
+        if t=='':
+            t = 0
+        try:
+            t = int(t)
+        except:
+            t = self.MO_N_CURVA
+            self.ids.In_Curva.text = str(t)
+        self.MO_N_CURVA = t
+        self.CalcLen()
+
+    def AdjParab(self, *args):
+        t = self.ids.In_Parab.text
+        if t=='':
+            t = 0
+        try:
+            t = int(t)
+        except:
+            t = self.MO_N_PARAB
+            self.ids.In_Parab.text = str(t)
+        self.MO_N_PARAB = t
+        self.CalcLen()
+
+    def AdjScambio(self, *args):
+        t = self.ids.In_Scambio.text
+        if t=='':
+            t = 0
+        try:
+            t = int(t)
+        except:
+            t = self.MO_N_SCAMBIO
+            self.ids.In_Scambio.text = str(t)
+        self.MO_N_SCAMBIO = t
+        self.CalcLen()
+
+    def CalcLen(self, *args):
+        global LastGiro
+        l = 0
+        l = l + 1.620 * self.MO_N_RETT
+        l = l + 1.270 * self.MO_N_CURVA
+        l = l + 0.618 * self.MO_N_PARAB
+        l = l + 4.948 * self.MO_N_SCAMBIO
+        l = l/3
+        l = l * LastGiro
+        print(l)
+        self.MO_LEN = str(l)
+
+class WIN (Screen):
+
+    Classifica = ListProperty([0, 1, 2])
+    CM = ListProperty([False, False, False])
+    NomeMacch = ListProperty(["", "", ""])
+    IP = ListProperty([False, False, False])
+
+    def on_pre_enter(self, *args):
+        self.CalcolaClassifica()
+
+    def CalcolaClassifica(self, *args):
+        global Tempi
+        global Corre_Macchina_1
+        global Corre_Macchina_2
+        global Corre_Macchina_3
+        global Nome_Macchina_1
+        global Nome_Macchina_2
+        global Nome_Macchina_3
+
+        self.CM = [Corre_Macchina_1, Corre_Macchina_2, Corre_Macchina_3]
+        self.NomeMacch = [Nome_Macchina_1, Nome_Macchina_2, Nome_Macchina_3]
+
+        tmpL = [0, 0, 0]
+        for i in range(3):
+            tmpL[i] = Tempi[i][-1]
+            self.IP[i] = True
+
+        m = 0
+        for i in range(3):
+            if (tmpL[i]>m):
+                m = tmpL[i]
+        m = m +10
+        for i in range(3):
+            if ((tmpL[i] == 0)and(self.CM[i])):
+                self.IP[i] = False
+                tmpL[i] = m
+            elif ((tmpL[i] == 0)and not(self.CM[i])):
+                tmpL[i] = m+2
+
+        t = 0
+        for i in range(3):
+            if (tmpL[i] < tmpL[t]):
+                t = i
+        self.Classifica[0] = t
+        tmpL[t] = m + 5
+        for i in range(3):
+            if (tmpL[i] < tmpL[t]):
+                t = i
+        self.Classifica[1] = t
+        tmpL[t] = m + 5
+        for i in range(3):
+            if (tmpL[i] < tmpL[t]):
+                t = i
+        self.Classifica[2] = t
+        tmpL[t] = m + 5
+        print (self.Classifica)
+
+
     pass
 
 class WIP(Screen):
