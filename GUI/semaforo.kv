@@ -1,0 +1,333 @@
+#:kivy 1.0.9
+#:import FadeTransition kivy.uix.screenmanager.FadeTransition
+
+MyScreenManager:
+    transition: FadeTransition()
+    Home:
+
+<Home>:
+    name: 'Home'
+    #Sfondo blu
+    canvas:
+        Color:
+            rgba: .3, .3, .7, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    #Box per tutta la schermata (cosi' che ora ci organizzo all'interno le varie cose)
+    BoxLayout:
+        #Left Side
+        BoxLayout:
+            size_hint_x : .2
+        BoxLayout:
+            #Central side
+            #Schiarisco lo sfondo
+            canvas.before:
+                Color:
+                    rgba: 1, 1, 1, .1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: 30, 30, 30, 30
+            orientation: 'vertical'
+            BoxLayout:
+                size_hint_y: .3
+            BoxLayout:
+                #Parte con le scritte/bottoni
+                orientation : 'vertical'
+                Label:
+                    font_size: 50
+                    color: 1, 0, 0, 1
+                    text: "Mini 4 WD"
+                Button:
+                    background_color: .4 ,.8 , 0, .75
+                    border: 15, 15, 0, 15
+                    text: 'Gara'
+                    disabled: True
+                    font_size: 40
+                Button:
+                    background_color: .2 ,.2 , .8, .75
+                    border: 15, 15, 0, 15
+                    text: 'Organizza Gara'
+                    on_release : root.GoToOrganizzaGara()
+                    font_size: 40
+                Button:
+                    background_color: .3 ,.3 , .6, .75
+                    border: 15, 15, 0, 15
+                    text: 'Impostazioni'
+                    disabled: True
+                    font_size: 40
+                Button:
+                    background_color: .8 ,.3 , 0, .75
+                    border: 15, 15, 0, 15
+                    text: 'Esci'
+                    font_size: 40
+                    on_release: root.Leave()
+            BoxLayout:
+                size_hint_y: .2
+
+        BoxLayout:
+            size_hint_x : .3
+
+<OrganizzaGara>:
+    name: 'OrganizzaGara'
+    canvas.before:
+        Color:
+            rgba: .3, .3, .7, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size
+    BoxLayout:
+        #Tutta laschermata
+        orientation: 'vertical'
+        BoxLayout:
+            #Il box con tutte le Impostazioni
+            canvas.before:
+                Color:
+                    rgba: 1 , 1, 0, 1
+                RoundedRectangle:
+                    pos: self.pos
+                    size: self.size
+                    radius: 20, 20, 20, 20
+            size_hint_y : .35
+            orientation : 'vertical'
+            BoxLayout:
+                size_hint_y : .2
+            Label:
+                size_hint_y : .33
+                font_size: 40
+                color: 1, 0, 0, 1
+                text: "Organizza Gara"
+            BoxLayout:
+                size_hint_y: .2
+            BoxLayout:
+                #Contiene i bottoni
+                BoxLayout:
+                    #Nome file, apri e chiudi iscrizioni
+                    orientation: 'vertical'
+                    BoxLayout:
+                        #Nome file, carica, salva
+                        size_y: 50
+                        TextInput:
+                            id: In_FilePiloti
+                            text: root.GetFilePiloti()
+                            font_size: 30
+                            size_hint_x : .5
+                        Button:
+                            background_color: 0 , 0 , 1, 1
+                            border: 15, 15, 0, 0
+                            text: 'Carica'
+                            disabled : False
+                            on_release : root.CaricaFilePiloti()
+                            font_size: 30
+                            size_hint_x: .25
+                        Button:
+                            background_color: .3 , .8 , .2, 1
+                            border: 15, 0, 0, 15
+                            text: 'Salva'
+                            disabled : root.SalvaFPButtDisabled
+                            on_release : root.SalvaFilePiloti()
+                            font_size: 30
+                            size_hint_x: .25
+                    BoxLayout:
+                        Button:
+                            background_color: .3 , .9 , .2, 1
+                            border: 15, 15, 0, 0
+                            text: 'Apri Iscrizioni'
+                            disabled : not(root.IscrizioniAperte)
+                            #on_release : root.ApriIscrizioni()
+                            font_size: 30
+                        Button:
+                            background_color: .8 , .3 , .2, 1
+                            border: 15, 0, 0, 15
+                            text: 'Chiudi Iscrizioni'
+                            disabled : root.IscrizioniAperte
+                            #on_release : root.ApriIscrizioni()
+                            font_size: 30
+                #BoxLayout:
+
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: .2
+            BoxLayout:
+                canvas.before:
+                    Color:
+                        rgba: .8, .5, .2, 1
+                    RoundedRectangle:
+                        size: self.size
+                        pos: self.pos
+                        radius: 30, 30, 0, 0
+                TextInput:
+                    id: In_Pilota
+                    size_hint_x: .5
+                    font_size: 30
+                    text: ""
+                    on_text: root.AggiornaTestoPilota()
+                Button:
+                    background_color: .3 , .8 , .2, 1
+                    border: 15, 0, 0, 15
+                    text: 'Aggiungi'
+                    disabled : In_Pilota.text == ""
+                    on_release : root.AggiungiPilota()
+                    font_size: 30
+                    size_hint_x: .25
+                Button:
+                    background_color: .3 , .8 , .2, 1
+                    border: 15, 0, 0, 15
+                    text: 'Cerca'
+                    disabled : In_Pilota.text == ""
+                    on_release : root.CercaPilota()
+                    font_size: 30
+                    size_hint_x: .25
+            BoxLayout:
+
+
+
+
+        BoxLayout:
+            #Il box con i 2 box dati
+            size_hint_y: 1
+            orientation: 'vertical'
+            size_hint_y : 1
+            canvas.before:
+                Color:
+                    rgba: .3, .7, .2, 1
+                RoundedRectangle:
+                    size:self.size
+                    pos: self.pos
+                    radius: 30, 30, 30, 30
+            BoxLayout:
+                size_hint_y: .1
+            BoxLayout:
+                orientation : 'vertical'
+                BoxLayout:
+                    Label:
+                        id: Lab_P_1
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_1.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 0)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_2
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_2.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 1)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_3
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_3.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 2)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_4
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_4.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 3)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_5
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_5.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 4)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_6
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_6.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 5)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_7
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_7.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 6)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_8
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_8.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 7)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_9
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_9.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 8)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:
+                    Label:
+                        id: Lab_P_10
+                        font_size: 30
+                        text: ""
+                    Button:
+                        background_color: .8 , .3 , .1, 1
+                        border: 15, 0, 0, 15
+                        text: 'Elimina'
+                        disabled : Lab_P_10.text == ""
+                        on_release : root.EliminaPilota(root.init_index + 9)
+                        font_size: 30
+                        size_hint_x: .25
+                BoxLayout:

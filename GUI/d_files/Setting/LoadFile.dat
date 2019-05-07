@@ -1,0 +1,9 @@
+#ROnly
+
+#Parte riguardante i file
+
+SaveOnFile : ./d_files/Setting/ConfigCache.dat
+
+#File su cui salvare il risultato della corsa
+FilePiloti : corsa.csv
+PathFilePiloti : ./d_files/
