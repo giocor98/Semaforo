@@ -135,7 +135,7 @@ MyScreenManager:
                             border: 15, 15, 0, 0
                             text: 'Apri Iscrizioni'
                             disabled : not(root.IscrizioniAperte)
-                            #on_release : root.ApriIscrizioni()
+                            on_release : root.IscrizioniAperte = not root.IscrizioniAperte
                             font_size: 30
                         Button:
                             background_color: .8 , .3 , .2, 1
@@ -144,6 +144,14 @@ MyScreenManager:
                             disabled : root.IscrizioniAperte
                             #on_release : root.ApriIscrizioni()
                             font_size: 30
+                        Button:
+                            background_color: .8 , .3 , .2, 1
+                            border: 15, 0, 0, 15
+                            text: 'Calcola Manches'
+                            disabled : root.IscrizioniAperte
+                            on_release : root.CallCalcolaManches()
+                            font_size: 30
+
                 #BoxLayout:
 
         BoxLayout:

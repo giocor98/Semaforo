@@ -68,6 +68,10 @@ def AddToStack(nomeSchermata):
         StckScherm = StckScherm[:StckScherm.index(nomeSchermata)] + StckScherm[:StckScherm.index(nomeSchermata) + 1]
         return False
 
+
+def RandomizeArray (arr):
+    return arr
+
 #Inizia la parte di codice che serve per la gestione della parte grafica
 
 class SemaforoApp(App):
@@ -222,6 +226,60 @@ class OrganizzaGara(Screen):
         #Printa lista
         print(self.ListaPiloti)
         self.ScriviPiloti()
+
+    def CallCalcolaManches(self, *args):
+        self.CalcolaManches(6, self.ListaPiloti, "")
+
+    #Funzione che calcola le manches
+    def CalcolaManches(self, n_manches, Piloti, PathFile):
+        #Prepro il vettore dei Piloti
+        MPiloti = []
+        Manches = []
+        for i in Piloti:
+            MPiloti.append({'nome': i['nome'], 'P1' : 0, 'P2': 0, 'P3' : 0})
+
+        for i in range(n_manches):
+            Pista1 = ['P1']
+            Pista2 = ['P2']
+            Pista3 = ['P3']
+            PisteArr = [Pista1, Pista2, Pista3]
+            MaxPista = int(len(MPiloti)/3) + 1
+            print("Max")
+            print (MaxPista)
+            while(len(MPiloti)>0):
+                for x in PisteArr:
+                    if ((len(x)<=(MaxPista)and(len(MPiloti)>0))):
+                        print ("L")
+                        print(int((i+1)/n_manches))
+                        if MPiloti[0][x[0]] <= int((i+1)/3):
+                            x.append(MPiloti.pop(0))
+
+            for i in range(len(PisteArr)):
+                print("Pista %d", i)
+                PisteArr[i] = RandomizeArray(PisteArr[i])
+                print(PisteArr[i])
+
+            Manche_x = []
+
+            for i in range(MaxPista):
+                corsa = []
+                j = i+1
+                for x in PisteArr:
+                    if (len(x) >= j+1):
+                        x[j][x[0]] = x[j][x[0]] + 1
+                        corsa.append(x[j])
+                        MPiloti.append(x[j])
+                    else:
+                        corsa.append({'nome' : ''})
+                print(corsa)
+                Manche_x.append(corsa)
+            Manches.append(Manche_x)
+
+            print (MPiloti)
+
+        print (Manches)
+        print(len(Manches))
+
 
 
     #Funziono che elimina il pilota dalla lista
